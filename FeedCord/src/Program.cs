@@ -2,6 +2,8 @@
 
 public class Program
 {
-    public static void Main(string[] args) =>
-        new Startup().Initiliaze(args).GetAwaiter().GetResult();
+    public static void Main(string[] args)
+    {
+        Startup.Initialize(args).GetAwaiter().GetResult();
+    }    
 }

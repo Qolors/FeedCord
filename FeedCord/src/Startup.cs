@@ -12,16 +12,17 @@ namespace FeedCord.src
 {
     public class Startup
     {
-        public async Task Initiliaze(string[] args)
+        public static Task Initialize(string[] args)
         {
             var host = CreateHostBuilder(args).Build();
             host.Run();
 
-            await Task.Delay(-1);
+            return Task.CompletedTask;
         }
 
         private static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
+                .ConfigureAppConfiguration((context, builder) => SetupConfiguration(context, builder))
                 .ConfigureLogging(logging =>
                 {
                     logging.ClearProviders();
@@ -31,22 +32,50 @@ namespace FeedCord.src
                 })
                 .ConfigureServices((hostContext, services) =>
                 {
-                    IConfiguration config = new ConfigurationBuilder()
-                        .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-                        .AddJsonFile("config/appsettings.json", optional: false, reloadOnChange: true)
-                        .Build();
+                    var config = hostContext.Configuration;
 
-                    var rssUrls = config.GetSection("RssUrls").Get<string[]>()!;
-                    var discordWebhookUrl = config.GetValue<string>("DiscordWebhookUrl")!;
-                    int rssCheckIntervalMinutes = config.GetValue<int>("RssCheckIntervalMinutes");
+                    var rssUrls = config.GetSection("RssUrls").Get<string[]>();
+                    var discordWebhookUrl = config.GetValue<string>("DiscordWebhookUrl");
+                    var username = config.GetValue<string>("Username");
+                    var avatarUrl = config.GetValue<string>("AvatarUrl");
+                    var authorIcon = config.GetValue<string>("AuthorIcon");
+                    var authorName = config.GetValue<string>("AuthorName");
+                    var authorUrl = config.GetValue<string>("AuthorUrl");
+                    var fallbackImage = config.GetValue<string>("FallbackImage");
+                    var footerImage = config.GetValue<string>("FooterImage");
+                    var color = config.GetValue<int>("Color");
+                    var rssCheckIntervalMinutes = config.GetValue<int>("RssCheckIntervalMinutes");
+
+                    var appConfig = new Config(
+                        rssUrls,
+                        discordWebhookUrl,
+                        username,
+                        avatarUrl,
+                        authorIcon,
+                        authorName,
+                        authorUrl,
+                        fallbackImage,
+                        footerImage,
+                        color,
+                        rssCheckIntervalMinutes);
 
                     services
                         .AddHttpClient()
                         .AddScoped<IRssProcessorService, RssProcessorService>()
-                        .AddSingleton(new Config(rssUrls, discordWebhookUrl, rssCheckIntervalMinutes))
+                        .AddSingleton(appConfig)
                         .AddSingleton<IFeedProcessor, FeedProcessor>()
                         .AddSingleton<INotifier, Notifier>()
                         .AddHostedService<RssCheckerBackgroundService>();
                 });
+
+
+        private static void SetupConfiguration(HostBuilderContext context, IConfigurationBuilder builder)
+        {
+            builder
+                .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
+                .AddJsonFile("config/appsettings.json", optional: false, reloadOnChange: true);
+        }
     }
 }
+
+

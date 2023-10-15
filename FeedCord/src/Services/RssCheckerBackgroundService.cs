@@ -4,6 +4,9 @@ using FeedCord.src.DiscordNotifier;
 using FeedCord.src.RssReader;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace FeedCord.src.Services
 {
@@ -30,9 +33,9 @@ namespace FeedCord.src.Services
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                logger.LogInformation("[{DateTime.Now}]: Starting Background Process", DateTime.Now);
+                logger.LogInformation("Starting Background Process at {CurrentTime}", DateTime.Now);
                 await RunRoutineBackgroundProcessAsync();
-                logger.LogInformation("[{DateTime.Now}]: Finished Background Process", DateTime.Now);
+                logger.LogInformation("Finished Background Process at {CurrentTime}", DateTime.Now);
                 await Task.Delay(TimeSpan.FromMinutes(delayTime), stoppingToken);
             }
         }
@@ -45,18 +48,17 @@ namespace FeedCord.src.Services
 
                 if (posts.Count > 0)
                 {
-                    logger.LogInformation("[{DateTime.Now}]: Found new posts. New post count: [ {Posts.Count} ]", DateTime.Now, posts.Count);
+                    logger.LogInformation("Found {PostCount} new posts at {CurrentTime}", posts.Count, DateTime.Now);
                     await notifier.SendNotificationsAsync(posts);
                 }
                 else
                 {
-                    logger.LogInformation("[{DateTime.Now}]: Found no new posts.. Ending background process.", DateTime.Now);
+                    logger.LogInformation("Found no new posts at {CurrentTime}. Ending background process.", DateTime.Now);
                 }
-
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "[{DateTime.Now}]: An error occurred while checking for new posts.", DateTime.Now);
+                logger.LogError(ex, "An error occurred while checking for new posts at {CurrentTime}.", DateTime.Now);
             }
         }
     }

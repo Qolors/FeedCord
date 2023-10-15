@@ -15,12 +15,13 @@ namespace FeedCord.src.DiscordNotifier
             httpClient = httpClientFactory.CreateClient();
             this.logger = logger;
             webhook = config.Webhook;
+            DiscordPayloadService.SetConfig(config);
         }
         public async Task SendNotificationsAsync(List<Post> newPosts)
         {
             foreach (Post post in newPosts)
             {
-                var content = PayloadService.BuildPayloadWithPost(post);
+                var content = DiscordPayloadService.BuildPayloadWithPost(post);
 
                 if (content is null)
                 {

@@ -1,8 +1,6 @@
 ﻿using FeedCord.src.Common;
 using FeedCord.src.Common.Interfaces;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
@@ -12,11 +10,13 @@ namespace FeedCord.src.Services
     {
         private readonly HttpClient httpClient;
         private readonly ILogger<RssProcessorService> logger;
-        public RssProcessorService(IHttpClientFactory httpClientFactory, ILogger<RssProcessorService> logger) 
+
+        public RssProcessorService(IHttpClientFactory httpClientFactory, ILogger<RssProcessorService> logger)
         {
             this.logger = logger;
             this.httpClient = httpClientFactory.CreateClient();
         }
+
         public async Task<Post> ParseRssFeedAsync(string xmlContent)
         {
             var xDoc = XDocument.Parse(xmlContent);
@@ -28,6 +28,7 @@ namespace FeedCord.src.Services
             if (latestPost == null)
             {
                 logger.LogError("No items found in the RSS feed");
+                return null;
             }
 
             string rawDescription = latestPost?.Element("description")?.Value ?? string.Empty;
@@ -42,8 +43,7 @@ namespace FeedCord.src.Services
                 description = description.Substring(0, 147) + "...";
             }
 
-
-            Post post = new Post(
+            return new Post(
                 title,
                 imageLink,
                 description,
@@ -51,8 +51,6 @@ namespace FeedCord.src.Services
                 subtitle,
                 DateTime.TryParse(latestPost?.Element("pubDate")?.Value, out var pubDate) ? pubDate : default
             );
-
-            return await Task.FromResult(post);
         }
 
         public string StripTags(string source)
@@ -65,16 +63,24 @@ namespace FeedCord.src.Services
             if (string.IsNullOrEmpty(source))
                 return string.Empty;
 
-            HttpResponseMessage response = await httpClient.GetAsync(source);
-            response.EnsureSuccessStatusCode();
-            string htmlContent = await response.Content.ReadAsStringAsync();
+            try
+            {
+                HttpResponseMessage response = await httpClient.GetAsync(source);
+                response.EnsureSuccessStatusCode();
+                string htmlContent = await response.Content.ReadAsStringAsync();
 
-            var htmlDocument = new HtmlAgilityPack.HtmlDocument();
-            htmlDocument.LoadHtml(htmlContent);
+                var htmlDocument = new HtmlAgilityPack.HtmlDocument();
+                htmlDocument.LoadHtml(htmlContent);
 
-            var ogImage = htmlDocument.DocumentNode.SelectSingleNode("//meta[@property='og:image']")?.GetAttributeValue("content", string.Empty);
+                var ogImage = htmlDocument.DocumentNode.SelectSingleNode("//meta[@property='og:image']")?.GetAttributeValue("content", string.Empty);
 
-            return ogImage ?? string.Empty;
+                return ogImage ?? string.Empty;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error extracting URL from source: {Source}", source);
+                return string.Empty;
+            }
         }
     }
 }
