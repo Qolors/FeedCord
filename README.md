@@ -11,7 +11,7 @@ FeedCord is a dead-simple RSS Reader designed to integrate seamlessly with Disco
 ## Features
 
 - **Discord Integration:** Directly send your RSS feed updates to a Discord channel via a webhook.
-- **Ease of Setup:** Configuration is a breeze with a simple JSON file. Just add your Webhook URL & RSS Feeds
+- **Ease of Setup:** Configuration is a breeze with a simple JSON file. Just add your Webhook URL & RSS Feeds.
 - **Docker Support:** Deploying with Docker makes your life easier and is highly recommended.
 
 ---
