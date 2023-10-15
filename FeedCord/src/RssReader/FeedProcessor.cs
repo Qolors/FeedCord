@@ -38,6 +38,9 @@ namespace FeedCord.src.RssReader
             {
                 var post = await CheckFeedForUpdatesAsync(rssFeed.Key);
 
+                if (post is null)
+                    continue;
+
                 if (post.PublishDate > rssFeed.Value)
                 {
                     rssFeedData[rssFeed.Key] = post.PublishDate;
@@ -54,17 +57,33 @@ namespace FeedCord.src.RssReader
             foreach (var url in config.Urls)
             {
                 if (!rssFeedData.ContainsKey(url))
-                    rssFeedData[url] = DateTime.MinValue;
+                    rssFeedData[url] = DateTime.Now;
             }
 
             logger.LogInformation("Set initial datetime for {UrlCount} Urls on first run", config.Urls.Length);
         }
 
-        private async Task<Post> CheckFeedForUpdatesAsync(string url)
+        private async Task<Post?> CheckFeedForUpdatesAsync(string url)
         {
-            var response = await httpClient.GetAsync(url);
-            string xmlContent = await response.Content.ReadAsStringAsync();
-            return await rssProcessorService.ParseRssFeedAsync(xmlContent);
+            try
+            {
+                var response = await httpClient.GetAsync(url);
+                response.EnsureSuccessStatusCode();
+
+                string xmlContent = await response.Content.ReadAsStringAsync();
+                return await rssProcessorService.ParseRssFeedAsync(xmlContent);
+            }
+            catch (HttpRequestException ex)
+            {
+                logger.LogError(ex, "Failed to fetch or process the RSS feed from {Url}", url);
+                return null;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "An unexpected error occurred while checking the RSS feed from {Url}", url);
+                return null;
+            }
         }
+
     }
 }
