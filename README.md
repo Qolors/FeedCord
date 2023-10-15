@@ -16,7 +16,7 @@ FeedCord is a dead-simple RSS Reader designed to integrate seamlessly with Disco
 
 ---
 
-## Quick Setup
+## Quick Setup (Docker)
 
 ### 1. Creating a Discord Webhook
 
@@ -57,7 +57,7 @@ You can see what each property does [here](https://github.com/Qolors/FeedCord/bl
 
 ### 3. Docker Deployment
 
-**Step 1:** In the `FeedCord` folder, create a Docker Compose file named `docker-compose.yml`:
+**Step 1:** In the `FeedCord` folder, create a Docker Compose file named `docker-compose.yaml`:
 
 ```yaml
 version: "3.9"
@@ -83,12 +83,20 @@ This will pull the latest FeedCord image from Docker Hub and start the service.
 
 ---
 
-## Done!
+## Done
 
 With the above steps completed, FeedCord should now be running and posting updates from your RSS feeds directly to your Discord channel.
 
 ---
 
-For more information and updates, visit the [FeedCord GitHub repository](https://github.com/Qolors/FeedCord).
+## Quick Setup (Executable)
+
+*Still a Work In Progress*...
+
+---
+
+Feel free to contribute or fork this repo to build upon yourself.
+
+If you find this software useful or wish to support this project please leave a Star ⭐️
 
 ---
