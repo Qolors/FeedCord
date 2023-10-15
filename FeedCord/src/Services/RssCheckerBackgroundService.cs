@@ -12,24 +12,28 @@ namespace FeedCord.src.Services
         private readonly ILogger<RssCheckerBackgroundService> logger;
         private readonly IFeedProcessor feedProcessor;
         private readonly INotifier notifier;
+        private int delayTime;
 
         public RssCheckerBackgroundService(
             ILogger<RssCheckerBackgroundService> logger,
             IFeedProcessor feedProcessor,
-            INotifier notifier)
+            INotifier notifier,
+            Config config)
         {
             this.logger = logger;
             this.feedProcessor = feedProcessor;
             this.notifier = notifier;
+            this.delayTime = config.RssCheckIntervalMinutes;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             while (!stoppingToken.IsCancellationRequested)
             {
+                logger.LogInformation("[{DateTime.Now}]: Starting Background Process", DateTime.Now);
                 await RunRoutineBackgroundProcessAsync();
-                Console.WriteLine("Completed Background Process");
-                await Task.Delay(TimeSpan.FromMinutes(10));
+                logger.LogInformation("[{DateTime.Now}]: Finished Background Process", DateTime.Now);
+                await Task.Delay(TimeSpan.FromMinutes(delayTime), stoppingToken);
             }
         }
 
@@ -41,13 +45,18 @@ namespace FeedCord.src.Services
 
                 if (posts.Count > 0)
                 {
+                    logger.LogInformation("[{DateTime.Now}]: Found new posts. New post count: [ {Posts.Count} ]", DateTime.Now, posts.Count);
                     await notifier.SendNotificationsAsync(posts);
+                }
+                else
+                {
+                    logger.LogInformation("[{DateTime.Now}]: Found no new posts.. Ending background process.", DateTime.Now);
                 }
 
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "An error occurred while checking for new posts.");
+                logger.LogError(ex, "[{DateTime.Now}]: An error occurred while checking for new posts.", DateTime.Now);
             }
         }
     }

@@ -1,21 +1,19 @@
 ﻿using FeedCord.src.Common;
 using FeedCord.src.Common.Interfaces;
 using FeedCord.src.Services;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace FeedCord.src.DiscordNotifier
 {
     internal class Notifier : INotifier
     {
-        private HttpClient httpClient;
-        private string webhook;
-        public Notifier(Config config, IHttpClientFactory httpClientFactory) 
+        private readonly HttpClient httpClient;
+        private readonly ILogger<INotifier> logger;
+        private readonly string webhook;
+        public Notifier(Config config, IHttpClientFactory httpClientFactory, ILogger<INotifier> logger) 
         {
             httpClient = httpClientFactory.CreateClient();
+            this.logger = logger;
             webhook = config.Webhook;
         }
         public async Task SendNotificationsAsync(List<Post> newPosts)
@@ -25,11 +23,16 @@ namespace FeedCord.src.DiscordNotifier
                 var content = PayloadService.BuildPayloadWithPost(post);
 
                 if (content is null)
+                {
+                    logger.LogError("[{DateTime.Now}]: Payload Service returned null after attempting to build", DateTime.Now);
                     continue;
+                }
 
                 var response = await httpClient.PostAsync(webhook, content);
-                response.EnsureSuccessStatusCode();
 
+                logger.LogInformation("[{DateTime.Now}]: {Response.EnsureSuccessStatusCode()}", DateTime.Now, response.EnsureSuccessStatusCode());
+
+                await Task.Delay(1000);
             }
         }
     }

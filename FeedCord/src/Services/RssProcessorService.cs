@@ -1,5 +1,8 @@
 ﻿using FeedCord.src.Common;
 using FeedCord.src.Common.Interfaces;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
@@ -7,11 +10,16 @@ namespace FeedCord.src.Services
 {
     internal class RssProcessorService : IRssProcessorService
     {
+        private readonly HttpClient httpClient;
+        private readonly ILogger<RssProcessorService> logger;
+        public RssProcessorService(IHttpClientFactory httpClientFactory, ILogger<RssProcessorService> logger) 
+        {
+            this.logger = logger;
+            this.httpClient = httpClientFactory.CreateClient();
+        }
         public async Task<Post> ParseRssFeedAsync(string xmlContent)
         {
             var xDoc = XDocument.Parse(xmlContent);
-
-            XNamespace media = xDoc.Root.GetNamespaceOfPrefix("media");
 
             string subtitle = xDoc.Descendants("title").FirstOrDefault().Value;
 
@@ -19,31 +27,25 @@ namespace FeedCord.src.Services
 
             if (latestPost == null)
             {
-                throw new InvalidOperationException("No items found in the RSS feed.");
+                logger.LogError("No items found in the RSS feed");
             }
 
             string rawDescription = latestPost?.Element("description")?.Value ?? string.Empty;
-            string rawLink = string.Empty;
-            if (media != null)
-            {
-                rawLink = latestPost?.Element(media + "thumbnail")?.Attribute("url")?.Value ?? string.Empty;
-            }
-            else
-            {
-                rawLink = latestPost?.Element("description")?.Value ?? string.Empty;
-            }
             string rawTitle = latestPost?.Element("title")?.Value ?? string.Empty;
 
             string description = StripTags(rawDescription);
             string title = StripTags(rawTitle);
+            string imageLink = await ExtractUrls(latestPost?.Element("link")?.Value ?? string.Empty);
 
-            string link = !string.IsNullOrWhiteSpace(rawLink)
-                ? rawLink
-                : ExtractUrls(rawDescription).FirstOrDefault() ?? string.Empty;
+            if (description.Length > 150)
+            {
+                description = description.Substring(0, 147) + "...";
+            }
+
 
             Post post = new Post(
                 title,
-                link,  // Assuming media:thumbnail has a 'url' attribute
+                imageLink,
                 description,
                 latestPost?.Element("link")?.Value ?? string.Empty,
                 subtitle,
@@ -58,14 +60,21 @@ namespace FeedCord.src.Services
             return Regex.Replace(source, "<.*?>", string.Empty);
         }
 
-        public IEnumerable<string> ExtractUrls(string source)
+        public async Task<string> ExtractUrls(string source)
         {
-            var matches = Regex.Matches(source, @"https?://\S+");
+            if (string.IsNullOrEmpty(source))
+                return string.Empty;
 
-            foreach (Match match in matches)
-            {
-                yield return match.Value;
-            }
+            HttpResponseMessage response = await httpClient.GetAsync(source);
+            response.EnsureSuccessStatusCode();
+            string htmlContent = await response.Content.ReadAsStringAsync();
+
+            var htmlDocument = new HtmlAgilityPack.HtmlDocument();
+            htmlDocument.LoadHtml(htmlContent);
+
+            var ogImage = htmlDocument.DocumentNode.SelectSingleNode("//meta[@property='og:image']")?.GetAttributeValue("content", string.Empty);
+
+            return ogImage ?? string.Empty;
         }
     }
 }

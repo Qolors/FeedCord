@@ -6,7 +6,7 @@ using FeedCord.src.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Http;
+using Microsoft.Extensions.Logging;
 
 namespace FeedCord.src
 {
@@ -22,6 +22,13 @@ namespace FeedCord.src
 
         private static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
+                .ConfigureLogging(logging =>
+                {
+                    logging.ClearProviders();
+                    logging.AddConsole();
+                    logging.AddFilter("Microsoft", LogLevel.Information);
+                    logging.AddFilter("System", LogLevel.Information);
+                })
                 .ConfigureServices((hostContext, services) =>
                 {
                     IConfiguration config = new ConfigurationBuilder()
