@@ -1,85 +1,53 @@
 ﻿using FeedCord.src.Common;
 using FeedCord.src.Common.Interfaces;
+using FeedCord.src.Helpers;
 using Microsoft.Extensions.Logging;
-using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
 namespace FeedCord.src.Services
 {
     internal class RssProcessorService : IRssProcessorService
     {
-        private readonly HttpClient httpClient;
         private readonly ILogger<RssProcessorService> logger;
+        private readonly IOpenGraphService openGraphService;
 
-        public RssProcessorService(IHttpClientFactory httpClientFactory, ILogger<RssProcessorService> logger)
+        public RssProcessorService(ILogger<RssProcessorService> logger, IOpenGraphService openGraphService)
         {
             this.logger = logger;
-            this.httpClient = httpClientFactory.CreateClient();
+            this.openGraphService = openGraphService;
         }
 
-        public async Task<Post> ParseRssFeedAsync(string xmlContent)
+        public async Task<Post?> ParseRssFeedAsync(string xmlContent)
         {
-            var xDoc = XDocument.Parse(xmlContent);
-
-            string subtitle = xDoc.Descendants("title").FirstOrDefault().Value;
-
-            var latestPost = xDoc.Descendants("item").FirstOrDefault();
-
-            if (latestPost == null)
-            {
-                logger.LogError("No items found in the RSS feed");
-                return null;
-            }
-
-            string rawDescription = latestPost?.Element("description")?.Value ?? string.Empty;
-            string rawTitle = latestPost?.Element("title")?.Value ?? string.Empty;
-
-            string description = StripTags(rawDescription);
-            string title = StripTags(rawTitle);
-            string imageLink = await ExtractUrls(latestPost?.Element("link")?.Value ?? string.Empty);
-
-            if (description.Length > 150)
-            {
-                description = description.Substring(0, 147) + "...";
-            }
-
-            return new Post(
-                title,
-                imageLink,
-                description,
-                latestPost?.Element("link")?.Value ?? string.Empty,
-                subtitle,
-                DateTime.TryParse(latestPost?.Element("pubDate")?.Value, out var pubDate) ? pubDate : default
-            );
-        }
-
-        public string StripTags(string source)
-        {
-            return Regex.Replace(source, "<.*?>", string.Empty);
-        }
-
-        public async Task<string> ExtractUrls(string source)
-        {
-            if (string.IsNullOrEmpty(source))
-                return string.Empty;
-
             try
             {
-                HttpResponseMessage response = await httpClient.GetAsync(source);
-                response.EnsureSuccessStatusCode();
-                string htmlContent = await response.Content.ReadAsStringAsync();
+                var xDoc = XDocument.Parse(xmlContent);
+                var subtitle = xDoc.Descendants("title").FirstOrDefault()?.Value ?? string.Empty;
+                var latestPost = xDoc.Descendants("item").FirstOrDefault();
 
-                var htmlDocument = new HtmlAgilityPack.HtmlDocument();
-                htmlDocument.LoadHtml(htmlContent);
+                if (latestPost == null)
+                {
+                    logger.LogError("No items found in the RSS feed. Is this a traditional RSS Feed?");
+                    return null;
+                }
 
-                var ogImage = htmlDocument.DocumentNode.SelectSingleNode("//meta[@property='og:image']")?.GetAttributeValue("content", string.Empty);
+                string rawDescription = latestPost.Element("description")?.Value ?? string.Empty;
+                string description = StringHelper.StripTags(rawDescription);
+                if (description.Length > 200)
+                {
+                    description = string.Concat(description.AsSpan(0, 197), "...");
+                }
 
-                return ogImage ?? string.Empty;
+                string title = StringHelper.StripTags(latestPost.Element("title")?.Value ?? string.Empty);
+                string imageLink = await openGraphService.ExtractImageUrl(latestPost.Element("link")?.Value ?? string.Empty);
+                DateTime pubDate = DateTime.TryParse(latestPost.Element("pubDate")?.Value, out var tempDate) ? tempDate : default;
+
+                return new Post(title, imageLink, description, latestPost.Element("link")?.Value ?? string.Empty, subtitle, pubDate);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error extracting URL from source: {Source}", source);
-                return string.Empty;
+                logger.LogError(ex, "Error parsing the RSS feed.");
+                return null;
             }
         }
     }

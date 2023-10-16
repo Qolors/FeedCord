@@ -39,7 +39,7 @@ namespace FeedCord.src.Services
                         },
                         footer = new
                         {
-                            text = $"{post.Tag} - {post.PublishDate.ToShortTimeString()}",
+                            text = $"{post.Tag} - {post.PublishDate:MM/dd/yyyy h:mm tt}",
                             icon_url = _config.FooterImage
                         },
                     }

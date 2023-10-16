@@ -15,7 +15,7 @@ namespace FeedCord.src.Services
         private readonly ILogger<RssCheckerBackgroundService> logger;
         private readonly IFeedProcessor feedProcessor;
         private readonly INotifier notifier;
-        private int delayTime;
+        private readonly int delayTime;
 
         public RssCheckerBackgroundService(
             ILogger<RssCheckerBackgroundService> logger,
@@ -58,7 +58,7 @@ namespace FeedCord.src.Services
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "An error occurred while checking for new posts at {CurrentTime}.", DateTime.Now);
+                logger.LogWarning(ex, "A warning occurred while checking for new posts at {CurrentTime}.", DateTime.Now);
             }
         }
     }

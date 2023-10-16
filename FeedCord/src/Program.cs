@@ -4,6 +4,6 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        Startup.Initialize(args).GetAwaiter().GetResult();
+        Startup.Initialize(args);
     }    
 }

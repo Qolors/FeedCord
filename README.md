@@ -64,7 +64,8 @@ version: "3.9"
 
 services:
   myfeedcord:
-    image: qolors/feedcord:latest
+    image: qolors/feedcord:latest # for amd64 architecture
+    # image: qolors/feedcord:latest-arm64  # For arm64 architecture (Uncomment this line and comment the above if using arm64)
     container_name: FeedCord
     restart: unless-stopped
     volumes:
@@ -72,6 +73,8 @@ services:
 ```
 
 Replace `./PATH/TO/MY/JSON/FILE/` with the actual path to your `appsettings.json`.
+
+**Note:**: Depending on your architecture, use `qolors/feedcord:latest` for amd64 architecture, or `qolors/feedcord:latest-arm64` for arm64 architecture. Ensure to uncomment the appropriate line in the docker-compose.yml as per your system's architecture. If you need a different please open a request.
 
 **Step 2:** Navigate to your `FeedCord` directory in your terminal and run:
 
@@ -81,6 +84,15 @@ docker-compose up -d
 
 This will pull the latest FeedCord image from Docker Hub and start the service.
 
+If you want to update your current image to latest it's quite simple. In your FeedCord directory run:
+```
+docker-compose pull
+```
+followed by
+```
+docker-compose up -d
+```
+This will pull the latest image and restart your current container with it
 ---
 
 ## Done!
@@ -89,6 +101,39 @@ With the above steps completed, FeedCord should now be running and posting updat
 
 ---
 
-For more information and updates, visit the [FeedCord GitHub repository](https://github.com/Qolors/FeedCord).
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+<details>
+  <summary>[1.1.0] - 2023-10-16</summary>
+  
+  ### Added
+  - Broke up `RssProcessorService` class to follow SOLID principles, adding a new service class `OpenGraphService` to handle meta tags.
+  - Added `Helper` namespace & `StringHelper` class, which includes the `StripTags` method for potential reuse and improved organization.
+
+  ### Changed
+  - Enhanced the RSS feed background service for more efficient feed checks, reducing chances of delays.
+  - Customized the `HttpClient` to set default request headers, ensuring better compatibility with certain RSS feeds.
+  - Refined feed processing logic to include concurrent processing, beneficial for users with a large number of RSS feeds.
+  - ReadMe to show this change log and multiple OS images.
+
+  ### Fixed
+  - Improved RSS feed initialization, ensuring only valid feeds are added to the tracking list.
+  - Overhauled logs to not contain as much spam and allow for better readability.
+
+</details>
+
+<details>
+  <summary>[1.0.0] - 2023-10-15</summary>
+  
+  ### Added
+  - Initial Project Release
+
+</details>
+
 
 ---

@@ -2,6 +2,7 @@
 using FeedCord.src.Common.Interfaces;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -14,9 +15,9 @@ namespace FeedCord.src.RssReader
         private readonly HttpClient httpClient;
         private readonly IRssProcessorService rssProcessorService;
         private readonly ILogger<FeedProcessor> logger;
-        private Dictionary<string, DateTime> rssFeedData = new();
+        private readonly Dictionary<string, DateTime> rssFeedData = new();
 
-        public FeedProcessor(
+        private FeedProcessor(
             Config config,
             IHttpClientFactory httpClientFactory,
             IRssProcessorService rssProcessorService,
@@ -24,44 +25,83 @@ namespace FeedCord.src.RssReader
         {
             this.config = config;
             this.httpClient = httpClientFactory.CreateClient();
+            this.httpClient.Timeout = TimeSpan.FromSeconds(30);
+            this.httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("FeedCord RssReader/1.0 (https://github.com/Qolors/FeedCord)");
             this.rssProcessorService = rssProcessorService;
             this.logger = logger;
-
-            InitializeUrls();
+        }
+        //STATIC FACTORY METHOD TO FIRST INITIALIZE URLS
+        public static async Task<FeedProcessor> CreateAsync(
+        Config config,
+        IHttpClientFactory httpClientFactory,
+        IRssProcessorService rssProcessorService,
+        ILogger<FeedProcessor> logger)
+        {
+            var processor = new FeedProcessor(config, httpClientFactory, rssProcessorService, logger);
+            await processor.InitializeUrlsAsync();
+            return processor;
         }
 
         public async Task<List<Post>> CheckForNewPostsAsync()
         {
-            List<Post> newPosts = new();
+            ConcurrentBag<Post> newPosts = new();
 
-            foreach (var rssFeed in rssFeedData)
+            var tasks = rssFeedData.Select(rssFeed => CheckAndAddNewPostAsync(rssFeed, newPosts)).ToList();
+            await Task.WhenAll(tasks);
+
+            return newPosts.ToList();
+        }
+
+        private async Task InitializeUrlsAsync()
+        {
+            int successCount = 0;
+            foreach (var url in config.Urls)
             {
-                var post = await CheckFeedForUpdatesAsync(rssFeed.Key);
-
-                if (post is null)
+                if (rssFeedData.ContainsKey(url))
                     continue;
 
-                if (post.PublishDate > rssFeed.Value)
+                var isSuccess = await TestUrlAsync(url);
+
+                if (isSuccess)
                 {
-                    rssFeedData[rssFeed.Key] = post.PublishDate;
-                    newPosts.Add(post);
-                    logger.LogInformation("Found new post for Url: {RssFeedKey}", rssFeed.Key);
+                    rssFeedData[url] = DateTime.Now;
+                    successCount++;
+                    logger.LogInformation("Successfully initialized URL: {Url}", url);
+                }
+                else
+                {
+                    logger.LogWarning("Failed to initialize URL: {Url}", url);
                 }
             }
 
-            return newPosts;
+            logger.LogInformation("Set initial datetime for {UrlCount} out of {TotalUrls} on first run", successCount, config.Urls.Length);
         }
 
-        private void InitializeUrls()
+        private async Task<bool> TestUrlAsync(string url)
         {
-            foreach (var url in config.Urls)
+            try
             {
-                if (!rssFeedData.ContainsKey(url))
-                    rssFeedData[url] = DateTime.Now;
+                var response = await httpClient.GetAsync(url);
+                response.EnsureSuccessStatusCode();
+                return true;
             }
-
-            logger.LogInformation("Set initial datetime for {UrlCount} Urls on first run", config.Urls.Length);
+            catch (HttpRequestException)
+            {
+                return false;
+            }
         }
+
+        private async Task CheckAndAddNewPostAsync(KeyValuePair<string, DateTime> rssFeed, ConcurrentBag<Post> newPosts)
+        {
+            var post = await CheckFeedForUpdatesAsync(rssFeed.Key);
+            if (post != null && post.PublishDate > rssFeed.Value)
+            {
+                rssFeedData[rssFeed.Key] = post.PublishDate; // Ensure thread safety if updating shared state
+                newPosts.Add(post);
+                logger.LogInformation("Found new post for Url: {RssFeedKey} at {CurrentTime}", rssFeed.Key, DateTime.Now);
+            }
+        }
+
 
         private async Task<Post?> CheckFeedForUpdatesAsync(string url)
         {
@@ -75,12 +115,12 @@ namespace FeedCord.src.RssReader
             }
             catch (HttpRequestException ex)
             {
-                logger.LogError(ex, "Failed to fetch or process the RSS feed from {Url}", url);
+                logger.LogWarning("Failed to fetch or process the RSS feed from {Url}: Response Ended Prematurely - Skipping Url", url);
                 return null;
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "An unexpected error occurred while checking the RSS feed from {Url}", url);
+                logger.LogWarning(ex, "An unexpected error occurred while checking the RSS feed from {Url}", url);
                 return null;
             }
         }

@@ -12,23 +12,23 @@ namespace FeedCord.src
 {
     public class Startup
     {
-        public static Task Initialize(string[] args)
+        public static void Initialize(string[] args)
         {
             var host = CreateHostBuilder(args).Build();
             host.Run();
-
-            return Task.CompletedTask;
         }
 
         private static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
-                .ConfigureAppConfiguration((context, builder) => SetupConfiguration(context, builder))
+                .ConfigureAppConfiguration(SetupConfiguration)
                 .ConfigureLogging(logging =>
                 {
                     logging.ClearProviders();
                     logging.AddConsole();
                     logging.AddFilter("Microsoft", LogLevel.Information);
+                    logging.AddFilter("Microsoft.Hosting", LogLevel.Warning);
                     logging.AddFilter("System", LogLevel.Information);
+                    logging.AddFilter("System.Net.Http.HttpClient", LogLevel.Warning);
                 })
                 .ConfigureServices((hostContext, services) =>
                 {
@@ -62,8 +62,17 @@ namespace FeedCord.src
                     services
                         .AddHttpClient()
                         .AddScoped<IRssProcessorService, RssProcessorService>()
+                        .AddTransient<IOpenGraphService, OpenGraphService>()
                         .AddSingleton(appConfig)
-                        .AddSingleton<IFeedProcessor, FeedProcessor>()
+                        .AddSingleton<IFeedProcessor>(serviceProvider =>
+                        {
+                            var config = serviceProvider.GetRequiredService<Config>();
+                            var httpClientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>();
+                            var rssService = serviceProvider.GetRequiredService<IRssProcessorService>();
+                            var logger = serviceProvider.GetRequiredService<ILogger<FeedProcessor>>();
+
+                            return FeedProcessor.CreateAsync(config, httpClientFactory, rssService, logger).GetAwaiter().GetResult();
+                        })
                         .AddSingleton<INotifier, Notifier>()
                         .AddHostedService<RssCheckerBackgroundService>();
                 });

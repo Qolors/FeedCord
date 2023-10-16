@@ -2,6 +2,7 @@
 using FeedCord.src.Common.Interfaces;
 using FeedCord.src.Services;
 using Microsoft.Extensions.Logging;
+using System.Net;
 
 namespace FeedCord.src.DiscordNotifier
 {
@@ -31,7 +32,14 @@ namespace FeedCord.src.DiscordNotifier
 
                 var response = await httpClient.PostAsync(webhook, content);
 
-                logger.LogInformation("[{DateTime.Now}]: {Response.EnsureSuccessStatusCode()}", DateTime.Now, response.EnsureSuccessStatusCode());
+                if (response.StatusCode == HttpStatusCode.NoContent)
+                {
+                    logger.LogInformation("[{DateTime.Now}]: Response - Successful: Posted new content to Discord Text Channel at {CurrentTime}", DateTime.Now);
+                }
+                else
+                {
+                    logger.LogError("Received Status Code - {StatusCode}: Failed post to Discord Channel", response.StatusCode);
+                }
 
                 await Task.Delay(1000);
             }

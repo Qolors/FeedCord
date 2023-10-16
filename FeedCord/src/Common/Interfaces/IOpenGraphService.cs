@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 
 namespace FeedCord.src.Common.Interfaces
 {
-    internal interface IRssProcessorService
+    internal interface IOpenGraphService
     {
-        Task<Post?> ParseRssFeedAsync(string xmlContent);
+        Task<string> ExtractImageUrl(string source);
     }
 }
