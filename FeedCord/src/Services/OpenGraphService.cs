@@ -10,7 +10,7 @@ namespace FeedCord.src.Services
 
         public OpenGraphService(IHttpClientFactory httpClientFactory, ILogger<OpenGraphService> logger)
         {
-            this.httpClient = httpClientFactory.CreateClient();
+            this.httpClient = httpClientFactory.CreateClient("Default");
             this.logger = logger;
         }
 
@@ -29,7 +29,10 @@ namespace FeedCord.src.Services
                 var htmlDocument = new HtmlAgilityPack.HtmlDocument();
                 htmlDocument.LoadHtml(htmlContent);
 
-                var ogImage = htmlDocument.DocumentNode.SelectSingleNode("//meta[@property='og:image']")?.GetAttributeValue("content", string.Empty);
+                var ogImage = htmlDocument
+                    .DocumentNode
+                    .SelectSingleNode("//meta[@property='og:image']")?
+                    .GetAttributeValue("content", string.Empty);
 
                 return ogImage ?? string.Empty;
             }

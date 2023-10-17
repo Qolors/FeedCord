@@ -16,6 +16,7 @@ namespace FeedCord.src.RssReader
         private readonly IRssProcessorService rssProcessorService;
         private readonly ILogger<FeedProcessor> logger;
         private readonly Dictionary<string, DateTime> rssFeedData = new();
+        private readonly Dictionary<string, DateTime> youtubeFeedData = new();
 
         private FeedProcessor(
             Config config,
@@ -24,9 +25,7 @@ namespace FeedCord.src.RssReader
             ILogger<FeedProcessor> logger)
         {
             this.config = config;
-            this.httpClient = httpClientFactory.CreateClient();
-            this.httpClient.Timeout = TimeSpan.FromSeconds(30);
-            this.httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("FeedCord RssReader/1.0 (https://github.com/Qolors/FeedCord)");
+            this.httpClient = httpClientFactory.CreateClient("Default");
             this.rssProcessorService = rssProcessorService;
             this.logger = logger;
         }
@@ -46,7 +45,11 @@ namespace FeedCord.src.RssReader
         {
             ConcurrentBag<Post> newPosts = new();
 
-            var tasks = rssFeedData.Select(rssFeed => CheckAndAddNewPostAsync(rssFeed, newPosts)).ToList();
+            var rsstasks = rssFeedData.Select(rssFeed => CheckAndAddNewPostAsync(rssFeed, newPosts, false)).ToList();
+            var youtubetasks = youtubeFeedData.Select(youtubeFeed => CheckAndAddNewPostAsync(youtubeFeed, newPosts, true)).ToList();
+
+            var tasks = rsstasks.Concat(youtubetasks).ToList();
+
             await Task.WhenAll(tasks);
 
             return newPosts.ToList();
@@ -54,8 +57,19 @@ namespace FeedCord.src.RssReader
 
         private async Task InitializeUrlsAsync()
         {
+            int totalUrls = config.Urls.Length + config.YoutubeUrls.Length;
+            int rssCount = await GetSuccessCount(config.Urls, false);
+            int youtubeCount = await GetSuccessCount(config.YoutubeUrls, true);
+
+            int successCount = rssCount + youtubeCount;
+
+            logger.LogInformation("Set initial datetime for {UrlCount} out of {TotalUrls} on first run", successCount, totalUrls);
+        }
+
+        private async Task<int> GetSuccessCount(string[] urls, bool isYoutube)
+        {
             int successCount = 0;
-            foreach (var url in config.Urls)
+            foreach (var url in urls)
             {
                 if (rssFeedData.ContainsKey(url))
                     continue;
@@ -64,7 +78,14 @@ namespace FeedCord.src.RssReader
 
                 if (isSuccess)
                 {
-                    rssFeedData[url] = DateTime.Now;
+                    if (isYoutube)
+                    {
+                        youtubeFeedData[url] = DateTime.Now;
+                    }
+                    else
+                    {
+                        rssFeedData[url] = DateTime.Now;
+                    }
                     successCount++;
                     logger.LogInformation("Successfully initialized URL: {Url}", url);
                 }
@@ -74,7 +95,7 @@ namespace FeedCord.src.RssReader
                 }
             }
 
-            logger.LogInformation("Set initial datetime for {UrlCount} out of {TotalUrls} on first run", successCount, config.Urls.Length);
+            return successCount;
         }
 
         private async Task<bool> TestUrlAsync(string url)
@@ -91,19 +112,29 @@ namespace FeedCord.src.RssReader
             }
         }
 
-        private async Task CheckAndAddNewPostAsync(KeyValuePair<string, DateTime> rssFeed, ConcurrentBag<Post> newPosts)
+        private async Task CheckAndAddNewPostAsync(KeyValuePair<string, DateTime> rssFeed, ConcurrentBag<Post> newPosts, bool isYoutube)
         {
-            var post = await CheckFeedForUpdatesAsync(rssFeed.Key);
+
+            var post = await CheckFeedForUpdatesAsync(rssFeed.Key, isYoutube);
+
             if (post != null && post.PublishDate > rssFeed.Value)
             {
-                rssFeedData[rssFeed.Key] = post.PublishDate; // Ensure thread safety if updating shared state
+                if (isYoutube)
+                {
+                    youtubeFeedData[rssFeed.Key] = post.PublishDate;
+                }
+                else
+                {
+                    rssFeedData[rssFeed.Key] = post.PublishDate;
+                }
+
                 newPosts.Add(post);
                 logger.LogInformation("Found new post for Url: {RssFeedKey} at {CurrentTime}", rssFeed.Key, DateTime.Now);
             }
         }
 
 
-        private async Task<Post?> CheckFeedForUpdatesAsync(string url)
+        private async Task<Post?> CheckFeedForUpdatesAsync(string url, bool isYoutube)
         {
             try
             {
@@ -111,7 +142,10 @@ namespace FeedCord.src.RssReader
                 response.EnsureSuccessStatusCode();
 
                 string xmlContent = await response.Content.ReadAsStringAsync();
-                return await rssProcessorService.ParseRssFeedAsync(xmlContent);
+                return isYoutube ? 
+                    await rssProcessorService.ParseYoutubeFeedAsync(xmlContent) :
+                    await rssProcessorService.ParseRssFeedAsync(xmlContent);
+                    
             }
             catch (HttpRequestException ex)
             {

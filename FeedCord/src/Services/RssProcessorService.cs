@@ -10,11 +10,16 @@ namespace FeedCord.src.Services
     {
         private readonly ILogger<RssProcessorService> logger;
         private readonly IOpenGraphService openGraphService;
+        private readonly IYoutubeParsingService youtubeParsingService;
 
-        public RssProcessorService(ILogger<RssProcessorService> logger, IOpenGraphService openGraphService)
+        public RssProcessorService(
+            ILogger<RssProcessorService> logger, 
+            IOpenGraphService openGraphService, 
+            IYoutubeParsingService youtubeParsingService)
         {
             this.logger = logger;
             this.openGraphService = openGraphService;
+            this.youtubeParsingService = youtubeParsingService;
         }
 
         public async Task<Post?> ParseRssFeedAsync(string xmlContent)
@@ -49,6 +54,11 @@ namespace FeedCord.src.Services
                 logger.LogError(ex, "Error parsing the RSS feed.");
                 return null;
             }
+        }
+
+        public async Task<Post?> ParseYoutubeFeedAsync(string channelUrl)
+        {
+            return await youtubeParsingService.GetXmlUrlAndFeed(channelUrl);
         }
     }
 }

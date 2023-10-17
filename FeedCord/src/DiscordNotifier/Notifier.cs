@@ -13,7 +13,7 @@ namespace FeedCord.src.DiscordNotifier
         private readonly string webhook;
         public Notifier(Config config, IHttpClientFactory httpClientFactory, ILogger<INotifier> logger) 
         {
-            httpClient = httpClientFactory.CreateClient();
+            httpClient = httpClientFactory.CreateClient("Default");
             this.logger = logger;
             webhook = config.Webhook;
             DiscordPayloadService.SetConfig(config);
@@ -26,7 +26,7 @@ namespace FeedCord.src.DiscordNotifier
 
                 if (content is null)
                 {
-                    logger.LogError("[{DateTime.Now}]: Payload Service returned null after attempting to build", DateTime.Now);
+                    logger.LogError("[{CurrentTime}]: Payload Service returned null after attempting to build", DateTime.Now);
                     continue;
                 }
 
@@ -34,7 +34,7 @@ namespace FeedCord.src.DiscordNotifier
 
                 if (response.StatusCode == HttpStatusCode.NoContent)
                 {
-                    logger.LogInformation("[{DateTime.Now}]: Response - Successful: Posted new content to Discord Text Channel at {CurrentTime}", DateTime.Now);
+                    logger.LogInformation("[{CurrentTime}]: Response - Successful: Posted new content to Discord Text Channel at {CurrentTime}", DateTime.Now);
                 }
                 else
                 {

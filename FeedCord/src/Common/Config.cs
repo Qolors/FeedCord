@@ -3,6 +3,7 @@
     internal class Config
     {
         public string[] Urls { get; }
+        public string[] YoutubeUrls { get; }
         public string Webhook { get; }
         public string Username { get; }
         public string AvatarUrl { get; }
@@ -16,6 +17,7 @@
 
         public Config(
             string[] urls,
+            string[] youtubeurls,
             string webhook,
             string username,
             string avatarUrl,
@@ -28,6 +30,7 @@
             int rssCheckIntervalMinutes)
         {
             Urls = urls ?? throw new ArgumentNullException(nameof(urls));
+            YoutubeUrls = youtubeurls ?? new string[0];
             Webhook = webhook ?? throw new ArgumentNullException(nameof(webhook));
             Username = username;
             AvatarUrl = avatarUrl;
