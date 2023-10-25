@@ -35,7 +35,7 @@ namespace FeedCord.src
                     var config = hostContext.Configuration;
 
                     var rssUrls = config.GetSection("RssUrls").Get<string[]>();
-                    var youtubeUrls = config.GetValue<string[]>("YoutubeUrls");
+                    var youtubeUrls = config.GetSection("YoutubeUrls").Get<string[]>();
                     var discordWebhookUrl = config.GetValue<string>("DiscordWebhookUrl");
                     var username = config.GetValue<string>("Username");
                     var avatarUrl = config.GetValue<string>("AvatarUrl");
@@ -46,6 +46,7 @@ namespace FeedCord.src
                     var footerImage = config.GetValue<string>("FooterImage");
                     var color = config.GetValue<int>("Color");
                     var rssCheckIntervalMinutes = config.GetValue<int>("RssCheckIntervalMinutes");
+                    var enableAutoRemove = config.GetValue<bool>("EnableAutoRemove");
 
                     var appConfig = new Config(
                         rssUrls,
@@ -59,12 +60,15 @@ namespace FeedCord.src
                         fallbackImage,
                         footerImage,
                         color,
-                        rssCheckIntervalMinutes);
+                        rssCheckIntervalMinutes,
+                        enableAutoRemove);
+
                     services.AddHttpClient("Default", httpClient => 
                         {
                             httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
                             httpClient.Timeout.Add(TimeSpan.FromSeconds(30));
                         });
+
                     services
                         .AddScoped<IRssProcessorService, RssProcessorService>()
                         .AddTransient<IOpenGraphService, OpenGraphService>()

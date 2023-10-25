@@ -19,7 +19,6 @@ namespace FeedCord.src.Services
             {
                 username = _config.Username,
                 avatar_url = _config.AvatarUrl,
-                color = _config.Color,
                 embeds = new[]
                 {
                     new
@@ -42,6 +41,7 @@ namespace FeedCord.src.Services
                             text = $"{post.Tag} - {post.PublishDate:MM/dd/yyyy h:mm tt}",
                             icon_url = _config.FooterImage
                         },
+                        color = _config.Color,
                     }
                 }
             };

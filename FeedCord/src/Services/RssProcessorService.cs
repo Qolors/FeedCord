@@ -32,7 +32,7 @@ namespace FeedCord.src.Services
 
                 if (latestPost == null)
                 {
-                    logger.LogError("No items found in the RSS feed. Is this a traditional RSS Feed?");
+                    logger.LogError("No items found in the RSS feed. FeedCord only supports Traditional RSS Feeds");
                     return null;
                 }
 
@@ -51,7 +51,6 @@ namespace FeedCord.src.Services
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error parsing the RSS feed.");
                 return null;
             }
         }

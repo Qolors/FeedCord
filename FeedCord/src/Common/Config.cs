@@ -14,6 +14,7 @@
         public string FooterImage { get; }
         public int Color { get; }
         public int RssCheckIntervalMinutes { get; }
+        public bool EnableAutoRemove { get; }
 
         public Config(
             string[] urls,
@@ -27,10 +28,11 @@
             string fallbackImage,
             string footerImage,
             int color,
-            int rssCheckIntervalMinutes)
+            int rssCheckIntervalMinutes,
+            bool enableAutoRemove)
         {
             Urls = urls ?? throw new ArgumentNullException(nameof(urls));
-            YoutubeUrls = youtubeurls ?? new string[0];
+            YoutubeUrls = youtubeurls ?? throw new ArgumentNullException(nameof(youtubeurls));
             Webhook = webhook ?? throw new ArgumentNullException(nameof(webhook));
             Username = username;
             AvatarUrl = avatarUrl;
@@ -41,6 +43,7 @@
             FooterImage = footerImage;
             Color = color;
             RssCheckIntervalMinutes = rssCheckIntervalMinutes;
+            EnableAutoRemove = enableAutoRemove;
         }
     }
 }

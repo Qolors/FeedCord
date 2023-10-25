@@ -33,32 +33,25 @@ namespace FeedCord.src.Services
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                logger.LogInformation("Starting Background Process at {CurrentTime}", DateTime.Now);
+                logger.LogInformation("Starting Background Process at {CurrentTime}..", DateTime.Now);
                 await RunRoutineBackgroundProcessAsync();
-                logger.LogInformation("Finished Background Process at {CurrentTime}", DateTime.Now);
+                logger.LogInformation("Finished Background Process at {CurrentTime}..", DateTime.Now);
                 await Task.Delay(TimeSpan.FromMinutes(delayTime), stoppingToken);
             }
         }
 
         private async Task RunRoutineBackgroundProcessAsync()
         {
-            try
-            {
-                var posts = await feedProcessor.CheckForNewPostsAsync();
+            var posts = await feedProcessor.CheckForNewPostsAsync();
 
-                if (posts.Count > 0)
-                {
-                    logger.LogInformation("Found {PostCount} new posts at {CurrentTime}", posts.Count, DateTime.Now);
-                    await notifier.SendNotificationsAsync(posts);
-                }
-                else
-                {
-                    logger.LogInformation("Found no new posts at {CurrentTime}. Ending background process.", DateTime.Now);
-                }
-            }
-            catch (Exception ex)
+            if (posts.Count > 0)
             {
-                logger.LogWarning(ex, "A warning occurred while checking for new posts at {CurrentTime}.", DateTime.Now);
+                logger.LogInformation("Found {PostCount} new posts..", posts.Count);
+                await notifier.SendNotificationsAsync(posts);
+            }
+            else
+            {
+                logger.LogInformation("Found no new posts. Ending background process..");
             }
         }
     }

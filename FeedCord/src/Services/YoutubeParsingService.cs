@@ -26,12 +26,7 @@ namespace FeedCord.src.Services
             if (node != null)
             {
                 var hrefValue = node.GetAttributeValue("href", "");
-                logger.LogCritical("Load Href: {HrefValue}", hrefValue);
                 return await GetRecentPost(hrefValue);
-            }
-            else
-            {
-                logger.LogError("Failed to retreive Youtube XML Url");
             }
 
             return null;
@@ -69,7 +64,6 @@ namespace FeedCord.src.Services
             }
             catch(Exception ex)
             {
-                logger.LogError(ex, "Failed to get Youtube RSS Feed");
                 return null;
             }
         }

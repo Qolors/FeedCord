@@ -34,7 +34,7 @@ namespace FeedCord.src.DiscordNotifier
 
                 if (response.StatusCode == HttpStatusCode.NoContent)
                 {
-                    logger.LogInformation("[{CurrentTime}]: Response - Successful: Posted new content to Discord Text Channel at {CurrentTime}", DateTime.Now);
+                    logger.LogInformation("[{CurrentTime}]: Response - Successful: Posted new content to Discord Text Channel at {CurrentTime}", DateTime.Now, DateTime.Now);
                 }
                 else
                 {

@@ -17,6 +17,7 @@ namespace FeedCord.src.RssReader
         private readonly ILogger<FeedProcessor> logger;
         private readonly Dictionary<string, DateTime> rssFeedData = new();
         private readonly Dictionary<string, DateTime> youtubeFeedData = new();
+        private readonly Dictionary<string, int> rssFeedErrorTracker = new();
 
         private FeedProcessor(
             Config config,
@@ -63,7 +64,7 @@ namespace FeedCord.src.RssReader
 
             int successCount = rssCount + youtubeCount;
 
-            logger.LogInformation("Set initial datetime for {UrlCount} out of {TotalUrls} on first run", successCount, totalUrls);
+            logger.LogInformation("Tested successfully for {UrlCount} out of {TotalUrls} Urls in Configuration File", successCount, totalUrls);
         }
 
         private async Task<int> GetSuccessCount(string[] urls, bool isYoutube)
@@ -86,6 +87,8 @@ namespace FeedCord.src.RssReader
                     {
                         rssFeedData[url] = DateTime.Now;
                     }
+
+                    rssFeedErrorTracker[url] = 0;
                     successCount++;
                     logger.LogInformation("Successfully initialized URL: {Url}", url);
                 }
@@ -114,24 +117,61 @@ namespace FeedCord.src.RssReader
 
         private async Task CheckAndAddNewPostAsync(KeyValuePair<string, DateTime> rssFeed, ConcurrentBag<Post> newPosts, bool isYoutube)
         {
+            logger.LogInformation("Checking if any new posts for {RssFeedKey}...", rssFeed.Key);
 
             var post = await CheckFeedForUpdatesAsync(rssFeed.Key, isYoutube);
 
-            if (post != null && post.PublishDate > rssFeed.Value)
+            if (post is null)
             {
-                if (isYoutube)
+                rssFeedErrorTracker[rssFeed.Key]++;
+                logger.LogWarning("Failed to fetch or process the RSS feed from {Url}.. Error Count: {ErrorCount}", rssFeed.Key, rssFeedErrorTracker[rssFeed.Key]);
+
+                if (rssFeedErrorTracker[rssFeed.Key] >= 3)
                 {
-                    youtubeFeedData[rssFeed.Key] = post.PublishDate;
-                }
-                else
-                {
-                    rssFeedData[rssFeed.Key] = post.PublishDate;
+                    if (config.EnableAutoRemove)
+                    {
+                        logger.LogWarning("Removing Url: {Url} from the list of RSS feeds due to too many errors", rssFeed.Key);
+
+                        if (youtubeFeedData.ContainsKey(rssFeed.Key))
+                        {
+                            youtubeFeedData.Remove(rssFeed.Key);
+                        }
+                        else if (rssFeedData.ContainsKey(rssFeed.Key))
+                        {
+                            rssFeedData.Remove(rssFeed.Key);
+                        }
+
+                        rssFeedErrorTracker.Remove(rssFeed.Key);
+                    }
+                    else
+                    {
+                        logger.LogWarning("Recommend enabling Auto Remove or manually removing the url from the config file");
+                    }
+
+                    return;
                 }
 
-                newPosts.Add(post);
-                logger.LogInformation("Found new post for Url: {RssFeedKey} at {CurrentTime}", rssFeed.Key, DateTime.Now);
+                return;
             }
+
+            if (post.PublishDate <= rssFeed.Value)
+            {
+                return;
+            }
+
+            if (isYoutube)
+            {
+                youtubeFeedData[rssFeed.Key] = post.PublishDate;
+            }
+            else
+            {
+                rssFeedData[rssFeed.Key] = post.PublishDate;
+            }
+
+            newPosts.Add(post);
+            logger.LogInformation("Found new post for Url: {RssFeedKey}", rssFeed.Key);
         }
+
 
 
         private async Task<Post?> CheckFeedForUpdatesAsync(string url, bool isYoutube)

@@ -37,8 +37,15 @@ FeedCord is a dead-simple RSS Reader designed to integrate seamlessly with Disco
     "RSS URLS",
     "HERE"
   ],
-  "DiscordWebhookUrl": "YOUR_WEBHOOK_URL_HERE",
-  "RssCheckIntervalMinutes": 10,
+  "YoutubeUrls": [
+    "YOUR",
+    "YOUTUBE CHANNEL URLS",
+    "HERE",
+    "eg. https://www.youtube.com/@IGN"
+  ],
+  "DiscordWebhookUrl": "https://discordapp.com/api/webhooks/1139357708546478200/ncB3dshJOPkQhthwOFQibeNt6YI-1_DiFbg0B3ZecfxchnbCGQNdG-m3PxqDdDSvt5Kk",
+  "RssCheckIntervalMinutes": 3,
+  "EnableAutoRemove": true,
   "Username": "FeedCord",
   "AvatarUrl": "https://i.imgur.com/1asmEAA.png",
   "AuthorIcon": "https://i.imgur.com/1asmEAA.png",
@@ -46,12 +53,16 @@ FeedCord is a dead-simple RSS Reader designed to integrate seamlessly with Disco
   "AuthorUrl": "https://github.com/Qolors/FeedCord",
   "FallbackImage": "https://i.imgur.com/f8M2Y5s.png",
   "FooterImage": "https://i.imgur.com/f8M2Y5s.png",
-  "Color": 16744576
+  "Color": 8411391
 }
 ```
 
 Make sure to replace placeholders (e.g., `YOUR RSS URLS HERE`, `YOUR_WEBHOOK_URL_HERE`) with your actual data.
 You can see what each property does [here](https://github.com/Qolors/FeedCord/blob/master/FeedCord/docs/reference.md).
+
+**Note:**: For a Youtube Channel FeedCord handles retreiving the RSS/XML Url for you. This means you just need to provide the Youtube Channel's home page url. This will look something like:
+- 'https://www.youtube.com/@APopularChannel'
+- 'https://www.youtube.com/channel/UCVfiai2'
 
 ---
 
@@ -74,7 +85,7 @@ services:
 
 Replace `./PATH/TO/MY/JSON/FILE/` with the actual path to your `appsettings.json`.
 
-**Note:**: Depending on your architecture, use `qolors/feedcord:latest` for amd64 architecture, or `qolors/feedcord:latest-arm64` for arm64 architecture. Ensure to uncomment the appropriate line in the docker-compose.yml as per your system's architecture. If you need a different please open a request.
+**Note:** Depending on your architecture, use `qolors/feedcord:latest` for amd64 architecture, or `qolors/feedcord:latest-arm64` for arm64 architecture. Ensure to uncomment the appropriate line in the docker-compose.yml as per your system's architecture. If you need a different please open a request.
 
 **Step 2:** Navigate to your `FeedCord` directory in your terminal and run:
 
@@ -107,6 +118,23 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+<details>
+  <summary>[1.2.0] - 2023-10-25</summary>
+  
+  ### Added
+  - Added Support for Youtube Channel Feeds in configuration file.
+  - Added an optional Auto Remove option in configuration file for bad URL Feeds to get booted out of the list after multiple failed attempts.
+
+  ### Changed
+  - Improved container logging messages for better readability.
+
+  ### Fixed
+  - Color setting in configuration now properly works for the embed message
+  - Fixed the handling of errors and removed from logging to reduce spam.
+  - Fixed a known logging index error.
+
+</details>
 
 <details>
   <summary>[1.1.0] - 2023-10-16</summary>
