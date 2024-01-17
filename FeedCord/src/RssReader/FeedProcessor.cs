@@ -58,11 +58,21 @@ namespace FeedCord.src.RssReader
 
         private async Task InitializeUrlsAsync()
         {
-            int totalUrls = config.Urls.Length + config.YoutubeUrls.Length;
+            int totalUrls = 0;
             int rssCount = await GetSuccessCount(config.Urls, false);
             int youtubeCount = await GetSuccessCount(config.YoutubeUrls, true);
+            int successCount = 0;
 
-            int successCount = rssCount + youtubeCount;
+            if (config.YoutubeUrls is null || config.YoutubeUrls.Length == 1 && string.IsNullOrEmpty(config.YoutubeUrls[0]))
+            {
+                totalUrls = config.Urls.Length;
+            }
+            else
+            {
+                totalUrls = config.Urls.Length + config.YoutubeUrls.Length;
+            }
+
+            successCount = rssCount + youtubeCount;
 
             logger.LogInformation("Tested successfully for {UrlCount} out of {TotalUrls} Urls in Configuration File", successCount, totalUrls);
         }
@@ -70,6 +80,14 @@ namespace FeedCord.src.RssReader
         private async Task<int> GetSuccessCount(string[] urls, bool isYoutube)
         {
             int successCount = 0;
+
+            if (urls.Length == 0 || urls.Length == 1 && string.IsNullOrEmpty(urls[0]))
+            {
+                string type = isYoutube ? "Youtube" : "RSS";
+                logger.LogInformation("No URLs in {type} feed, skipping...", type);
+                return successCount;
+            }
+
             foreach (var url in urls)
             {
                 if (rssFeedData.ContainsKey(url))

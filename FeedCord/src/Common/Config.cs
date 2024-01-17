@@ -32,7 +32,7 @@
             bool enableAutoRemove)
         {
             Urls = urls ?? throw new ArgumentNullException(nameof(urls));
-            YoutubeUrls = youtubeurls ?? throw new ArgumentNullException(nameof(youtubeurls));
+            YoutubeUrls = youtubeurls ?? new string[] { };
             Webhook = webhook ?? throw new ArgumentNullException(nameof(webhook));
             Username = username;
             AvatarUrl = avatarUrl;
