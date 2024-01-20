@@ -1,8 +1,8 @@
-﻿using FeedCord.src.Common;
+﻿using CodeHollow.FeedReader;
+using FeedCord.src.Common;
 using FeedCord.src.Common.Interfaces;
 using FeedCord.src.Helpers;
 using Microsoft.Extensions.Logging;
-using System.Xml.Linq;
 
 namespace FeedCord.src.Services
 {
@@ -22,32 +22,33 @@ namespace FeedCord.src.Services
             this.youtubeParsingService = youtubeParsingService;
         }
 
-        public async Task<Post?> ParseRssFeedAsync(string xmlContent)
+        public async Task<Post?> ParseRssFeedAsync(string xmlContent, int trim)
         {
             try
             {
-                var xDoc = XDocument.Parse(xmlContent);
-                var subtitle = xDoc.Descendants("title").FirstOrDefault()?.Value ?? string.Empty;
-                var latestPost = xDoc.Descendants("item").FirstOrDefault();
+                var feed = await FeedReader.ReadAsync(xmlContent);
+
+                var latestPost = feed.Items.FirstOrDefault();
 
                 if (latestPost == null)
-                {
-                    logger.LogError("No items found in the RSS feed. FeedCord only supports Traditional RSS Feeds");
                     return null;
-                }
 
-                string rawDescription = latestPost.Element("description")?.Value ?? string.Empty;
-                string description = StringHelper.StripTags(rawDescription);
-                if (description.Length > 200)
+                string title = latestPost.Title;
+                string imageLink = await openGraphService.ExtractImageUrl(latestPost.Link) ?? feed.ImageUrl ?? string.Empty;
+                string description = StringHelper.StripTags(latestPost.Description ?? string.Empty);
+                string link = latestPost.Link ?? string.Empty;
+                string subtitle = feed.Title;
+                DateTime pubDate = DateTime.TryParse(latestPost.PublishingDate.ToString(), out var tempDate) ? tempDate : default;
+
+                if (trim != 0)
                 {
-                    description = string.Concat(description.AsSpan(0, 197), "...");
+                    if (description.Length > trim)
+                    {
+                        description = description.Substring(0, trim) + "...";
+                    }
                 }
 
-                string title = StringHelper.StripTags(latestPost.Element("title")?.Value ?? string.Empty);
-                string imageLink = await openGraphService.ExtractImageUrl(latestPost.Element("link")?.Value ?? string.Empty);
-                DateTime pubDate = DateTime.TryParse(latestPost.Element("pubDate")?.Value, out var tempDate) ? tempDate : default;
-
-                return new Post(title, imageLink, description, latestPost.Element("link")?.Value ?? string.Empty, subtitle, pubDate);
+                return new Post(title, imageLink, description, link, subtitle, pubDate);
             }
             catch (Exception ex)
             {

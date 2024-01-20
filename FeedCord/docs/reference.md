@@ -16,6 +16,7 @@
 - **AuthorUrl**: The external link it will send users to when they click on the Author's Name.
 - **FallbackImage**: FeedCord always attemps to grab the webpage's image from metadata. If for some reason this fails, it will display this image instead.
 - **Color**: Color of the Post's embedded message.
+- **DescriptionLimit**: Limits the length of the description of the post to this number.
 
 ---
 

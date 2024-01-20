@@ -46,8 +46,8 @@ namespace FeedCord.src.RssReader
         {
             ConcurrentBag<Post> newPosts = new();
 
-            var rsstasks = rssFeedData.Select(rssFeed => CheckAndAddNewPostAsync(rssFeed, newPosts, false)).ToList();
-            var youtubetasks = youtubeFeedData.Select(youtubeFeed => CheckAndAddNewPostAsync(youtubeFeed, newPosts, true)).ToList();
+            var rsstasks = rssFeedData.Select(rssFeed => CheckAndAddNewPostAsync(rssFeed, newPosts, false, config.DescriptionLimit)).ToList();
+            var youtubetasks = youtubeFeedData.Select(youtubeFeed => CheckAndAddNewPostAsync(youtubeFeed, newPosts, true, config.DescriptionLimit)).ToList();
 
             var tasks = rsstasks.Concat(youtubetasks).ToList();
 
@@ -133,11 +133,11 @@ namespace FeedCord.src.RssReader
             }
         }
 
-        private async Task CheckAndAddNewPostAsync(KeyValuePair<string, DateTime> rssFeed, ConcurrentBag<Post> newPosts, bool isYoutube)
+        private async Task CheckAndAddNewPostAsync(KeyValuePair<string, DateTime> rssFeed, ConcurrentBag<Post> newPosts, bool isYoutube, int trim)
         {
             logger.LogInformation("Checking if any new posts for {RssFeedKey}...", rssFeed.Key);
 
-            var post = await CheckFeedForUpdatesAsync(rssFeed.Key, isYoutube);
+            var post = await CheckFeedForUpdatesAsync(rssFeed.Key, isYoutube, trim);
 
             if (post is null)
             {
@@ -192,17 +192,19 @@ namespace FeedCord.src.RssReader
 
 
 
-        private async Task<Post?> CheckFeedForUpdatesAsync(string url, bool isYoutube)
+        private async Task<Post?> CheckFeedForUpdatesAsync(string url, bool isYoutube, int trim)
         {
             try
             {
                 var response = await httpClient.GetAsync(url);
                 response.EnsureSuccessStatusCode();
 
-                string xmlContent = await response.Content.ReadAsStringAsync();
+                string xmlContent = isYoutube ?
+                    await response.Content.ReadAsStringAsync() :
+                    url;
                 return isYoutube ? 
                     await rssProcessorService.ParseYoutubeFeedAsync(xmlContent) :
-                    await rssProcessorService.ParseRssFeedAsync(xmlContent);
+                    await rssProcessorService.ParseRssFeedAsync(xmlContent, trim);
                     
             }
             catch (HttpRequestException ex)

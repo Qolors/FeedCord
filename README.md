@@ -53,7 +53,8 @@ FeedCord is a dead-simple RSS Reader designed to integrate seamlessly with Disco
   "AuthorUrl": "https://github.com/Qolors/FeedCord",
   "FallbackImage": "https://i.imgur.com/f8M2Y5s.png",
   "FooterImage": "https://i.imgur.com/f8M2Y5s.png",
-  "Color": 8411391
+  "Color": 8411391,
+  "DescriptionLimit": 200
 }
 ```
 
@@ -118,6 +119,21 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+<details>
+  <summary>[1.3.0] - 2024-01-20</summary>
+
+  ### Added
+  - Added Description Length Configuration
+
+  ### Changed
+  - Improved RSS & ATOM Parsing with implementing [FeedReader](https://github.com/arminreiter/FeedReader) library
+
+  ### Fixed
+  - RSS/ATOM Feeds returning errors because of parsing issues
+
+</details>
+
 
 <details>
   <summary>[1.2.1] - 2024-01-17</summary>
