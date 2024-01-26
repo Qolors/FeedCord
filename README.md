@@ -111,6 +111,10 @@ This will pull the latest image and restart your current container with it
 
 With the above steps completed, FeedCord should now be running and posting updates from your RSS feeds directly to your Discord channel.
 
+
+If you find good use of this tool and want to support it's development you can do so
+
+[here](https://www.buymeacoffee.com/qolors)❤️
 ---
 
 # Changelog
