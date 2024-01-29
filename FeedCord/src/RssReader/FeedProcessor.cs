@@ -19,7 +19,7 @@ namespace FeedCord.src.RssReader
         private readonly Dictionary<string, DateTime> youtubeFeedData = new();
         private readonly Dictionary<string, int> rssFeedErrorTracker = new();
 
-        public FeedProcessor(
+        private FeedProcessor(
             Config config,
             IHttpClientFactory httpClientFactory,
             IRssProcessorService rssProcessorService,
@@ -29,8 +29,17 @@ namespace FeedCord.src.RssReader
             this.httpClient = httpClientFactory.CreateClient("Default");
             this.rssProcessorService = rssProcessorService;
             this.logger = logger;
+        }
 
-            InitializeUrlsAsync().Wait();
+        public static async Task<FeedProcessor> CreateAsync(
+        Config config,
+        IHttpClientFactory httpClientFactory,
+        IRssProcessorService rssProcessorService,
+        ILogger<FeedProcessor> logger)
+        {
+            var processor = new FeedProcessor(config, httpClientFactory, rssProcessorService, logger);
+            await processor.InitializeUrlsAsync();
+            return processor;
         }
 
         public async Task<List<Post>> CheckForNewPostsAsync()

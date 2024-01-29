@@ -60,6 +60,7 @@ namespace FeedCord.src
                             var notifierFactory = sp.GetRequiredService<INotifierFactory>();
 
                             var feedProcessor = feedProcessorFactory.Create(config);
+                            feedProcessor
                             var notifier = notifierFactory.Create(config);
 
                             return rssCheckerBackgroundServiceFactory.Create(config, feedProcessor, notifier);

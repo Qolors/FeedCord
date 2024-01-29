@@ -15,8 +15,12 @@ namespace FeedCord.src.Factories
             _serviceProvider = serviceProvider;
         }
 
-        public IFeedProcessor Create(Config config)
+        public async Task<IFeedProcessor> Create(Config config)
         {
+            //TODO --> CREATE ASYNC INITIALIZATION FOR FEEDPROCESSOR CREATION 
+
+            FeedProcessor feedProcessor = await FeedProcessor.CreateAsync(config).Result;
+
             return ActivatorUtilities.CreateInstance<FeedProcessor>(_serviceProvider, config);
         }
     }
