@@ -12,22 +12,22 @@ namespace FeedCord.src.DiscordNotifier
         private readonly ILogger<INotifier> logger;
         private readonly string webhook;
         private readonly bool forum;
-        public Notifier(Config config, IHttpClientFactory httpClientFactory, ILogger<INotifier> logger) 
+        private DiscordPayloadService discordPayloadService;
+        public Notifier(Config config, IHttpClientFactory httpClientFactory, ILogger<INotifier> logger, DiscordPayloadService discordPayloadService) 
         {
             this.httpClient = httpClientFactory.CreateClient("Default");
             this.logger = logger;
-            this.webhook = config.Webhook;
+            this.webhook = config.DiscordWebhookUrl;
             this.forum = config.Forum;
-
-            DiscordPayloadService.SetConfig(config);
+            this.discordPayloadService = discordPayloadService;
         }
         public async Task SendNotificationsAsync(List<Post> newPosts)
         {
             foreach (Post post in newPosts)
             {
                 var content = forum ? 
-                    DiscordPayloadService.BuildForumWithPost(post) :
-                    DiscordPayloadService.BuildPayloadWithPost(post);
+                    discordPayloadService.BuildForumWithPost(post) :
+                    discordPayloadService.BuildPayloadWithPost(post);
 
                 if (content is null)
                 {

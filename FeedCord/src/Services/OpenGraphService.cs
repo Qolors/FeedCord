@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 
 namespace FeedCord.src.Services
 {
-    internal class OpenGraphService : IOpenGraphService
+    public class OpenGraphService : IOpenGraphService
     {
         private readonly HttpClient httpClient;
         private readonly ILogger<OpenGraphService> logger;

@@ -2,20 +2,24 @@
 using System.ComponentModel;
 using System.Text;
 using System.Text.Json;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace FeedCord.src.Services
 {
-    internal static class DiscordPayloadService
+    public class DiscordPayloadService
     {
-        private static Config _config;
+        private Config _config;
 
-        public static void SetConfig(Config config)
+        public DiscordPayloadService(Config config)
         {
-            _config = config ?? throw new ArgumentNullException(nameof(config));
+            _config = config;
         }
 
-        public static StringContent BuildPayloadWithPost(Post post)
+        public static DiscordPayloadService Create(Config config)
+        {
+            return new DiscordPayloadService(config);
+        }
+
+        public StringContent BuildPayloadWithPost(Post post)
         {
             var payload = new
             {
@@ -57,7 +61,7 @@ namespace FeedCord.src.Services
             return new StringContent(payloadJson, Encoding.UTF8, "application/json");
         }
 
-        public static StringContent BuildForumWithPost(Post post)
+        public StringContent BuildForumWithPost(Post post)
         {
             var payload = new
             {

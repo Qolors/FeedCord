@@ -1,6 +1,6 @@
 namespace FeedCord.src.Common.Interfaces
 {
-    internal interface IYoutubeParsingService
+    public interface IYoutubeParsingService
     {
         Task<Post?> GetXmlUrlAndFeed(string url);
     }

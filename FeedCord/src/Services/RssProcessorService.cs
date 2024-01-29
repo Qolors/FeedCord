@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace FeedCord.src.Services
 {
-    internal class RssProcessorService : IRssProcessorService
+    public class RssProcessorService : IRssProcessorService
     {
         private readonly ILogger<RssProcessorService> logger;
         private readonly IYoutubeParsingService youtubeParsingService;

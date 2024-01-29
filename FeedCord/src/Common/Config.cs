@@ -1,10 +1,10 @@
 ﻿namespace FeedCord.src.Common
 {
-    internal class Config
+    public class Config
     {
-        public string[] Urls { get; }
+        public string[] RssUrls { get; }
         public string[] YoutubeUrls { get; }
-        public string Webhook { get; }
+        public string DiscordWebhookUrl { get; }
         public string Username { get; }
         public string AvatarUrl { get; }
         public string AuthorIcon { get; }
@@ -18,38 +18,6 @@
         public int DescriptionLimit { get; }
         public bool Forum { get; }
 
-        public Config(
-            string[] urls,
-            string[] youtubeurls,
-            string webhook,
-            string username,
-            string avatarUrl,
-            string authorIcon,
-            string authorName,
-            string authorUrl,
-            string fallbackImage,
-            string footerImage,
-            int color,
-            int rssCheckIntervalMinutes,
-            bool enableAutoRemove,
-            int descriptionLimit,
-            bool forum)
-        {
-            Urls = urls ?? throw new ArgumentNullException(nameof(urls));
-            YoutubeUrls = youtubeurls ?? new string[] { };
-            Webhook = webhook ?? throw new ArgumentNullException(nameof(webhook));
-            Username = username;
-            AvatarUrl = avatarUrl;
-            AuthorIcon = authorIcon;
-            AuthorName = authorName;
-            AuthorUrl = authorUrl;
-            FallbackImage = fallbackImage;
-            FooterImage = footerImage;
-            Color = color;
-            RssCheckIntervalMinutes = rssCheckIntervalMinutes;
-            EnableAutoRemove = enableAutoRemove;
-            DescriptionLimit = descriptionLimit;
-            Forum = forum;
-        }
+        public Config() { }
     }
 }

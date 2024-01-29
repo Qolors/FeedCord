@@ -1,6 +1,8 @@
 ﻿using FeedCord.src.Common;
 using FeedCord.src.Common.Interfaces;
 using FeedCord.src.DiscordNotifier;
+using FeedCord.src.Factories;
+using FeedCord.src.Factories.Interfaces;
 using FeedCord.src.RssReader;
 using FeedCord.src.Services;
 using Microsoft.Extensions.Configuration;
@@ -32,63 +34,38 @@ namespace FeedCord.src
                 })
                 .ConfigureServices((hostContext, services) =>
                 {
-                    var config = hostContext.Configuration;
-
-                    var rssUrls = config.GetSection("RssUrls").Get<string[]>();
-                    var youtubeUrls = config.GetSection("YoutubeUrls").Get<string[]>();
-                    var discordWebhookUrl = config.GetValue<string>("DiscordWebhookUrl");
-                    var username = config.GetValue<string>("Username");
-                    var avatarUrl = config.GetValue<string>("AvatarUrl");
-                    var authorIcon = config.GetValue<string>("AuthorIcon");
-                    var authorName = config.GetValue<string>("AuthorName");
-                    var authorUrl = config.GetValue<string>("AuthorUrl");
-                    var fallbackImage = config.GetValue<string>("FallbackImage");
-                    var footerImage = config.GetValue<string>("FooterImage");
-                    var color = config.GetValue<int>("Color");
-                    var rssCheckIntervalMinutes = config.GetValue<int>("RssCheckIntervalMinutes");
-                    var enableAutoRemove = config.GetValue<bool>("EnableAutoRemove");
-                    var descriptionTrimLength = config.GetValue<int>("DescriptionLimit");
-                    var forum = config.GetValue<bool>("Forum");
-
-                    var appConfig = new Config(
-                        rssUrls,
-                        youtubeUrls,
-                        discordWebhookUrl,
-                        username,
-                        avatarUrl,
-                        authorIcon,
-                        authorName,
-                        authorUrl,
-                        fallbackImage,
-                        footerImage,
-                        color,
-                        rssCheckIntervalMinutes,
-                        enableAutoRemove,
-                        descriptionTrimLength,
-                        forum);
-
-                    services.AddHttpClient("Default", httpClient => 
-                        {
-                            httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
-                            httpClient.Timeout.Add(TimeSpan.FromSeconds(30));
-                        });
+                    var configs = hostContext.Configuration.GetSection("Instances").Get<List<Config>>();
 
                     services
-                        .AddScoped<IRssProcessorService, RssProcessorService>()
-                        .AddTransient<IOpenGraphService, OpenGraphService>()
-                        .AddTransient<IYoutubeParsingService, YoutubeParsingService>()
-                        .AddSingleton(appConfig)
-                        .AddSingleton<IFeedProcessor>(serviceProvider =>
-                        {
-                            var config = serviceProvider.GetRequiredService<Config>();
-                            var httpClientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>();
-                            var rssService = serviceProvider.GetRequiredService<IRssProcessorService>();
-                            var logger = serviceProvider.GetRequiredService<ILogger<FeedProcessor>>();
+                    .AddSingleton<IRssCheckerBackgroundServiceFactory, RssCheckerBackgroundServiceFactory>()
+                    .AddSingleton<IFeedProcessorFactory, FeedProcessorFactory>()
+                    .AddSingleton<INotifierFactory, NotifierFactory>()
+                    .AddScoped<IRssProcessorService, RssProcessorService>()
+                    .AddTransient<IOpenGraphService, OpenGraphService>()
+                    .AddTransient<IYoutubeParsingService, YoutubeParsingService>();
 
-                            return FeedProcessor.CreateAsync(config, httpClientFactory, rssService, logger).GetAwaiter().GetResult();
-                        })
-                        .AddSingleton<INotifier, Notifier>()
-                        .AddHostedService<RssCheckerBackgroundService>();
+                    services.AddHttpClient("Default", httpClient =>
+                    {
+                        httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
+                        httpClient.Timeout.Add(TimeSpan.FromSeconds(30));
+                    });
+
+                    foreach (var config in configs)
+                    {
+
+                        services.AddHostedService(sp =>
+                        {
+                            var feedProcessorFactory = sp.GetRequiredService<IFeedProcessorFactory>();
+                            var rssCheckerBackgroundServiceFactory = sp.GetRequiredService<IRssCheckerBackgroundServiceFactory>();
+                            var notifierFactory = sp.GetRequiredService<INotifierFactory>();
+
+                            var feedProcessor = feedProcessorFactory.Create(config);
+                            var notifier = notifierFactory.Create(config);
+
+                            return rssCheckerBackgroundServiceFactory.Create(config, feedProcessor, notifier);
+                        });
+                        
+                    }
                 });
 
 

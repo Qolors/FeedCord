@@ -1,16 +1,11 @@
 ﻿using FeedCord.src.Common;
 using FeedCord.src.Common.Interfaces;
-using FeedCord.src.DiscordNotifier;
-using FeedCord.src.RssReader;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace FeedCord.src.Services
 {
-    internal class RssCheckerBackgroundService : BackgroundService
+    public class RssCheckerBackgroundService : BackgroundService
     {
         private readonly ILogger<RssCheckerBackgroundService> logger;
         private readonly IFeedProcessor feedProcessor;

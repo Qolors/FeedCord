@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace FeedCord.src.Common.Interfaces
 {
-    internal interface INotifier
+    public interface INotifier
     {
         Task SendNotificationsAsync(List<Post> newPosts);
     }
