@@ -16,6 +16,7 @@
         public int RssCheckIntervalMinutes { get; }
         public bool EnableAutoRemove { get; }
         public int DescriptionLimit { get; }
+        public bool Forum { get; }
 
         public Config(
             string[] urls,
@@ -31,7 +32,8 @@
             int color,
             int rssCheckIntervalMinutes,
             bool enableAutoRemove,
-            int descriptionLimit)
+            int descriptionLimit,
+            bool forum)
         {
             Urls = urls ?? throw new ArgumentNullException(nameof(urls));
             YoutubeUrls = youtubeurls ?? new string[] { };
@@ -47,6 +49,7 @@
             RssCheckIntervalMinutes = rssCheckIntervalMinutes;
             EnableAutoRemove = enableAutoRemove;
             DescriptionLimit = descriptionLimit;
+            Forum = forum;
         }
     }
 }

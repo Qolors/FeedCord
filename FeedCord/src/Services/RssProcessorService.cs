@@ -9,17 +9,17 @@ namespace FeedCord.src.Services
     internal class RssProcessorService : IRssProcessorService
     {
         private readonly ILogger<RssProcessorService> logger;
-        private readonly IOpenGraphService openGraphService;
         private readonly IYoutubeParsingService youtubeParsingService;
+        private readonly IOpenGraphService openGraphService;
 
         public RssProcessorService(
-            ILogger<RssProcessorService> logger, 
-            IOpenGraphService openGraphService, 
-            IYoutubeParsingService youtubeParsingService)
+            ILogger<RssProcessorService> logger,  
+            IYoutubeParsingService youtubeParsingService,
+            IOpenGraphService openGraphService)
         {
             this.logger = logger;
-            this.openGraphService = openGraphService;
             this.youtubeParsingService = youtubeParsingService;
+            this.openGraphService = openGraphService;
         }
 
         public async Task<Post?> ParseRssFeedAsync(string xmlContent, int trim)
@@ -34,7 +34,7 @@ namespace FeedCord.src.Services
                     return null;
 
                 string title = latestPost.Title;
-                string imageLink = await openGraphService.ExtractImageUrl(latestPost.Link) ?? feed.ImageUrl ?? string.Empty;
+                string imageLink = await openGraphService.ExtractImageUrl(latestPost.Link) ?? feed.ImageUrl;
                 string description = StringHelper.StripTags(latestPost.Description ?? string.Empty);
                 string link = latestPost.Link ?? string.Empty;
                 string subtitle = feed.Title;

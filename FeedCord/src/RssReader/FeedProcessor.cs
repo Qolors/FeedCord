@@ -187,6 +187,7 @@ namespace FeedCord.src.RssReader
             }
 
             newPosts.Add(post);
+
             logger.LogInformation("Found new post for Url: {RssFeedKey}", rssFeed.Key);
         }
 

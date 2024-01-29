@@ -48,6 +48,7 @@ namespace FeedCord.src
                     var rssCheckIntervalMinutes = config.GetValue<int>("RssCheckIntervalMinutes");
                     var enableAutoRemove = config.GetValue<bool>("EnableAutoRemove");
                     var descriptionTrimLength = config.GetValue<int>("DescriptionLimit");
+                    var forum = config.GetValue<bool>("Forum");
 
                     var appConfig = new Config(
                         rssUrls,
@@ -63,7 +64,8 @@ namespace FeedCord.src
                         color,
                         rssCheckIntervalMinutes,
                         enableAutoRemove,
-                        descriptionTrimLength);
+                        descriptionTrimLength,
+                        forum);
 
                     services.AddHttpClient("Default", httpClient => 
                         {
