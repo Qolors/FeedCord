@@ -175,7 +175,7 @@ namespace FeedCord.src.RssReader
 
             if (post.PublishDate <= rssFeed.Value)
             {
-                //return;
+                return;
             }
 
             if (isYoutube)
