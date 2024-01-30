@@ -10,23 +10,28 @@ namespace FeedCord.src.DiscordNotifier
     {
         private readonly HttpClient httpClient;
         private readonly ILogger<INotifier> logger;
+        private readonly IDiscordPayloadService discordPayloadService;
         private readonly string webhook;
-        public Notifier(Config config, IHttpClientFactory httpClientFactory, ILogger<INotifier> logger) 
+        private readonly bool forum;
+        public Notifier(Config config, IHttpClientFactory httpClientFactory, ILogger<INotifier> logger, IDiscordPayloadService discordPayloadService) 
         {
-            httpClient = httpClientFactory.CreateClient("Default");
+            this.httpClient = httpClientFactory.CreateClient("Default");
             this.logger = logger;
-            webhook = config.Webhook;
-            DiscordPayloadService.SetConfig(config);
+            this.webhook = config.DiscordWebhookUrl;
+            this.forum = config.Forum;
+            this.discordPayloadService = discordPayloadService;
         }
         public async Task SendNotificationsAsync(List<Post> newPosts)
         {
             foreach (Post post in newPosts)
             {
-                var content = DiscordPayloadService.BuildPayloadWithPost(post);
+                var content = forum ? 
+                    discordPayloadService.BuildForumWithPost(post) :
+                    discordPayloadService.BuildPayloadWithPost(post);
 
                 if (content is null)
                 {
-                    logger.LogError("[{CurrentTime}]: Payload Service returned null after attempting to build", DateTime.Now);
+                    logger.LogError("[{CurrentTime}]: Payload Service returned error after attempting to build", DateTime.Now);
                     continue;
                 }
 

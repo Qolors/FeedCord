@@ -2,8 +2,10 @@
 
 namespace FeedCord.src.Common.Interfaces
 {
-    internal interface IFeedProcessor
+    public interface IFeedProcessor
     {
         Task<List<Post>> CheckForNewPostsAsync();
+
+        Task InitializeUrlsAsync();
     }
 }

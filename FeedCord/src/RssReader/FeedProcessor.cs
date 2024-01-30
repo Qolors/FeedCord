@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace FeedCord.src.RssReader
 {
-    internal class FeedProcessor : IFeedProcessor
+    public class FeedProcessor : IFeedProcessor
     {
         private readonly Config config;
         private readonly HttpClient httpClient;
@@ -19,7 +19,7 @@ namespace FeedCord.src.RssReader
         private readonly Dictionary<string, DateTime> youtubeFeedData = new();
         private readonly Dictionary<string, int> rssFeedErrorTracker = new();
 
-        private FeedProcessor(
+        public FeedProcessor(
             Config config,
             IHttpClientFactory httpClientFactory,
             IRssProcessorService rssProcessorService,
@@ -30,7 +30,7 @@ namespace FeedCord.src.RssReader
             this.rssProcessorService = rssProcessorService;
             this.logger = logger;
         }
-        //STATIC FACTORY METHOD TO FIRST INITIALIZE URLS
+
         public static async Task<FeedProcessor> CreateAsync(
         Config config,
         IHttpClientFactory httpClientFactory,
@@ -56,25 +56,26 @@ namespace FeedCord.src.RssReader
             return newPosts.ToList();
         }
 
-        private async Task InitializeUrlsAsync()
+        public async Task InitializeUrlsAsync()
         {
             int totalUrls = 0;
-            int rssCount = await GetSuccessCount(config.Urls, false);
+            int rssCount = await GetSuccessCount(config.RssUrls, false);
             int youtubeCount = await GetSuccessCount(config.YoutubeUrls, true);
             int successCount = 0;
+            string id = config.Id;
 
             if (config.YoutubeUrls is null || config.YoutubeUrls.Length == 1 && string.IsNullOrEmpty(config.YoutubeUrls[0]))
             {
-                totalUrls = config.Urls.Length;
+                totalUrls = config.RssUrls.Length;
             }
             else
             {
-                totalUrls = config.Urls.Length + config.YoutubeUrls.Length;
+                totalUrls = config.RssUrls.Length + config.YoutubeUrls.Length;
             }
 
             successCount = rssCount + youtubeCount;
 
-            logger.LogInformation("Tested successfully for {UrlCount} out of {TotalUrls} Urls in Configuration File", successCount, totalUrls);
+            logger.LogInformation("{id}: Tested successfully for {UrlCount} out of {TotalUrls} Urls in Configuration File", id, successCount, totalUrls);
         }
 
         private async Task<int> GetSuccessCount(string[] urls, bool isYoutube)
@@ -174,7 +175,7 @@ namespace FeedCord.src.RssReader
 
             if (post.PublishDate <= rssFeed.Value)
             {
-                return;
+                //return;
             }
 
             if (isYoutube)
@@ -187,6 +188,7 @@ namespace FeedCord.src.RssReader
             }
 
             newPosts.Add(post);
+
             logger.LogInformation("Found new post for Url: {RssFeedKey}", rssFeed.Key);
         }
 
@@ -197,11 +199,13 @@ namespace FeedCord.src.RssReader
             try
             {
                 var response = await httpClient.GetAsync(url);
+
                 response.EnsureSuccessStatusCode();
 
                 string xmlContent = isYoutube ?
                     await response.Content.ReadAsStringAsync() :
                     url;
+
                 return isYoutube ? 
                     await rssProcessorService.ParseYoutubeFeedAsync(xmlContent) :
                     await rssProcessorService.ParseRssFeedAsync(xmlContent, trim);

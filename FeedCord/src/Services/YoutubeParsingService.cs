@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace FeedCord.src.Services
 {
-    internal class YoutubeParsingService : IYoutubeParsingService
+    public class YoutubeParsingService : IYoutubeParsingService
     {
         private HttpClient httpClient;
         private ILogger<YoutubeParsingService> logger;

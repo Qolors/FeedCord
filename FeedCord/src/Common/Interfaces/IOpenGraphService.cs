@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace FeedCord.src.Common.Interfaces
 {
-    internal interface IOpenGraphService
+    public interface IOpenGraphService
     {
         Task<string> ExtractImageUrl(string source);
     }

@@ -2,7 +2,7 @@
 
 namespace FeedCord.src.Common
 {
-    internal record Post(
+    public record Post(
         string Title,
         string ImageUrl,
         string Description,

@@ -1,52 +1,22 @@
 ﻿namespace FeedCord.src.Common
 {
-    internal class Config
+    public class Config
     {
-        public string[] Urls { get; }
-        public string[] YoutubeUrls { get; }
-        public string Webhook { get; }
-        public string Username { get; }
-        public string AvatarUrl { get; }
-        public string AuthorIcon { get; }
-        public string AuthorName { get; }
-        public string AuthorUrl { get; }
-        public string FallbackImage { get; }
-        public string FooterImage { get; }
-        public int Color { get; }
-        public int RssCheckIntervalMinutes { get; }
-        public bool EnableAutoRemove { get; }
-        public int DescriptionLimit { get; }
-
-        public Config(
-            string[] urls,
-            string[] youtubeurls,
-            string webhook,
-            string username,
-            string avatarUrl,
-            string authorIcon,
-            string authorName,
-            string authorUrl,
-            string fallbackImage,
-            string footerImage,
-            int color,
-            int rssCheckIntervalMinutes,
-            bool enableAutoRemove,
-            int descriptionLimit)
-        {
-            Urls = urls ?? throw new ArgumentNullException(nameof(urls));
-            YoutubeUrls = youtubeurls ?? new string[] { };
-            Webhook = webhook ?? throw new ArgumentNullException(nameof(webhook));
-            Username = username;
-            AvatarUrl = avatarUrl;
-            AuthorIcon = authorIcon;
-            AuthorName = authorName;
-            AuthorUrl = authorUrl;
-            FallbackImage = fallbackImage;
-            FooterImage = footerImage;
-            Color = color;
-            RssCheckIntervalMinutes = rssCheckIntervalMinutes;
-            EnableAutoRemove = enableAutoRemove;
-            DescriptionLimit = descriptionLimit;
-        }
+        public string Id { get; set; }
+        public string[] RssUrls { get; set; }
+        public string[] YoutubeUrls { get; set; }
+        public string DiscordWebhookUrl { get; set; }
+        public string? Username { get; set; }
+        public string? AvatarUrl { get; set; }
+        public string? AuthorIcon { get; set; }
+        public string? AuthorName { get; set; }
+        public string? AuthorUrl { get; set; }
+        public string? FallbackImage { get; set; }
+        public string? FooterImage { get; set; }
+        public int Color { get; set; }
+        public int RssCheckIntervalMinutes { get; set; }
+        public bool EnableAutoRemove { get; set; }
+        public int DescriptionLimit { get; set; }
+        public bool Forum { get; set; }
     }
 }

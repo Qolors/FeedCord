@@ -6,8 +6,9 @@ using System.Threading.Tasks;
 
 namespace FeedCord.src.Common.Interfaces
 {
-    public interface INotifier
+    public interface IDiscordPayloadService
     {
-        Task SendNotificationsAsync(List<Post> newPosts);
+        StringContent BuildForumWithPost(Post post);
+        StringContent BuildPayloadWithPost(Post post);
     }
 }
