@@ -1,5 +1,5 @@
 ﻿
-
+![FeedCord Banner](https://github.com/Qolors/FeedCord/blob/master/FeedCord/docs/images/FeedCord.png)
 ---
 
 # FeedCord: Self-hosted RSS Reader for Discord
@@ -33,10 +33,11 @@ If you are looking to transition to 2.0.0+ from 1.x.x, please see the [Migration
 **Step 1:** Create a `FeedCord` folder at your desired location.
 
 **Step 2:** Inside the `FeedCord` folder, create a configuration file named `appsettings.json` with the following content:
+
 ---
-## For the Latest Versions (2.0.0+) please refer to the [Guide](https://github.com/Qolors/FeedCord/blob/master/FeedCord/docs/feedcord_2_x_x.md)
+#### For the Latest Versions (2.0.0+) please refer to the [Guide](https://github.com/Qolors/FeedCord/blob/master/FeedCord/docs/feedcord_2_x_x.md)
 ---
-### For Version 1.3.0 and below
+#### For Version 1.3.0 and below
 
 ```json
 {
@@ -118,8 +119,6 @@ This will pull the latest image and restart your current container with it
 ## Done
 
 With the above steps completed, FeedCord should now be running and posting updates from your RSS feeds directly to your Discord channel.
-
-### If you find good use of this tool and want to support it's development you can do so [here](https://www.buymeacoffee.com/qolors)❤️
 
 ---
 
@@ -223,6 +222,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Initial Project Release
 
 </details>
+
+## Support
+### If you find good use of this tool and want to support it's development you can do so [here](https://www.buymeacoffee.com/qolors)❤️
 
 
 ---
