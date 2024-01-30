@@ -10,10 +10,10 @@ namespace FeedCord.src.DiscordNotifier
     {
         private readonly HttpClient httpClient;
         private readonly ILogger<INotifier> logger;
+        private readonly IDiscordPayloadService discordPayloadService;
         private readonly string webhook;
         private readonly bool forum;
-        private DiscordPayloadService discordPayloadService;
-        public Notifier(Config config, IHttpClientFactory httpClientFactory, ILogger<INotifier> logger, DiscordPayloadService discordPayloadService) 
+        public Notifier(Config config, IHttpClientFactory httpClientFactory, ILogger<INotifier> logger, IDiscordPayloadService discordPayloadService) 
         {
             this.httpClient = httpClientFactory.CreateClient("Default");
             this.logger = logger;

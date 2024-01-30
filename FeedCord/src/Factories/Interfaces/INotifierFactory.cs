@@ -10,6 +10,6 @@ namespace FeedCord.src.Factories.Interfaces
 {
     public interface INotifierFactory
     {
-        INotifier Create(Config config);
+        INotifier Create(Config config, IDiscordPayloadService discordPayloadService);
     }
 }

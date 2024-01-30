@@ -11,6 +11,8 @@ namespace FeedCord.src.Services
         private readonly IFeedProcessor feedProcessor;
         private readonly INotifier notifier;
         private readonly int delayTime;
+        private bool isInitialized = false;
+        private readonly string id;
 
         public RssCheckerBackgroundService(
             ILogger<RssCheckerBackgroundService> logger,
@@ -22,31 +24,45 @@ namespace FeedCord.src.Services
             this.feedProcessor = feedProcessor;
             this.notifier = notifier;
             this.delayTime = config.RssCheckIntervalMinutes;
+            this.id = config.Id;
+
+            logger.LogInformation("{id} Created with check interval {Interval} minutes",
+                this.id, config.RssCheckIntervalMinutes);
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                logger.LogInformation("Starting Background Process at {CurrentTime}..", DateTime.Now);
+                logger.LogInformation("{id} Starting Background Processing at {CurrentTime}..", id, DateTime.Now);
+
                 await RunRoutineBackgroundProcessAsync();
-                logger.LogInformation("Finished Background Process at {CurrentTime}..", DateTime.Now);
+
+                logger.LogInformation("{id} Finished Background Processing at {CurrentTime}..", id, DateTime.Now);
+
                 await Task.Delay(TimeSpan.FromMinutes(delayTime), stoppingToken);
             }
         }
 
         private async Task RunRoutineBackgroundProcessAsync()
         {
+            if (!isInitialized)
+            {
+                logger.LogInformation("{id}: Initializing Url Checks..", id);
+                await feedProcessor.InitializeUrlsAsync();
+                isInitialized = true;
+            }
+
             var posts = await feedProcessor.CheckForNewPostsAsync();
 
             if (posts.Count > 0)
             {
-                logger.LogInformation("Found {PostCount} new posts..", posts.Count);
+                logger.LogInformation("{id}: Found {PostCount} new posts..", id, posts.Count);
                 await notifier.SendNotificationsAsync(posts);
             }
             else
             {
-                logger.LogInformation("Found no new posts. Ending background process..");
+                logger.LogInformation("{id}: Found no new posts. Ending background process..", id);
             }
         }
     }

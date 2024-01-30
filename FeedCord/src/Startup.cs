@@ -37,12 +37,14 @@ namespace FeedCord.src
                     var configs = hostContext.Configuration.GetSection("Instances").Get<List<Config>>();
 
                     services
-                    .AddSingleton<IRssCheckerBackgroundServiceFactory, RssCheckerBackgroundServiceFactory>()
-                    .AddSingleton<IFeedProcessorFactory, FeedProcessorFactory>()
-                    .AddSingleton<INotifierFactory, NotifierFactory>()
-                    .AddScoped<IRssProcessorService, RssProcessorService>()
+                    .AddTransient<IRssCheckerBackgroundServiceFactory, RssCheckerBackgroundServiceFactory>()
+                    .AddTransient<IFeedProcessorFactory, FeedProcessorFactory>()
+                    .AddTransient<INotifierFactory, NotifierFactory>()
+                    .AddTransient<IDiscordPayloadServiceFactory, DiscordPayloadServiceFactory>()
+                    .AddTransient<IRssProcessorService, RssProcessorService>()
                     .AddTransient<IOpenGraphService, OpenGraphService>()
-                    .AddTransient<IYoutubeParsingService, YoutubeParsingService>();
+                    .AddTransient<IYoutubeParsingService, YoutubeParsingService>()
+                    .AddTransient<IDiscordPayloadService, DiscordPayloadService>();
 
                     services.AddHttpClient("Default", httpClient =>
                     {
@@ -50,22 +52,33 @@ namespace FeedCord.src
                         httpClient.Timeout.Add(TimeSpan.FromSeconds(30));
                     });
 
-                    foreach (var config in configs)
+                    Console.WriteLine($"Number of configurations loaded: {configs.Count}");
+
+                    foreach (var c in configs)
                     {
 
-                        services.AddHostedService(sp =>
+                        services.AddSingleton<IHostedService>(sp =>
                         {
+
+                            Console.WriteLine($"Registering Background Service {c.Id}");
+
                             var feedProcessorFactory = sp.GetRequiredService<IFeedProcessorFactory>();
+
                             var rssCheckerBackgroundServiceFactory = sp.GetRequiredService<IRssCheckerBackgroundServiceFactory>();
+
                             var notifierFactory = sp.GetRequiredService<INotifierFactory>();
 
-                            var feedProcessor = feedProcessorFactory.Create(config);
-                            feedProcessor
-                            var notifier = notifierFactory.Create(config);
+                            var discordPayloadServiceFactory = sp.GetRequiredService<IDiscordPayloadServiceFactory>();
 
-                            return rssCheckerBackgroundServiceFactory.Create(config, feedProcessor, notifier);
+                            var feedProcessor = feedProcessorFactory.Create(c);
+
+                            var discordPayloadService = discordPayloadServiceFactory.Create(c);
+
+                            var notifier = notifierFactory.Create(c, discordPayloadService);
+
+                            return rssCheckerBackgroundServiceFactory.Create(c, feedProcessor, notifier);
+
                         });
-                        
                     }
                 });
 

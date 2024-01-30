@@ -19,7 +19,7 @@ namespace FeedCord.src.RssReader
         private readonly Dictionary<string, DateTime> youtubeFeedData = new();
         private readonly Dictionary<string, int> rssFeedErrorTracker = new();
 
-        private FeedProcessor(
+        public FeedProcessor(
             Config config,
             IHttpClientFactory httpClientFactory,
             IRssProcessorService rssProcessorService,
@@ -56,12 +56,13 @@ namespace FeedCord.src.RssReader
             return newPosts.ToList();
         }
 
-        private async Task InitializeUrlsAsync()
+        public async Task InitializeUrlsAsync()
         {
             int totalUrls = 0;
             int rssCount = await GetSuccessCount(config.RssUrls, false);
             int youtubeCount = await GetSuccessCount(config.YoutubeUrls, true);
             int successCount = 0;
+            string id = config.Id;
 
             if (config.YoutubeUrls is null || config.YoutubeUrls.Length == 1 && string.IsNullOrEmpty(config.YoutubeUrls[0]))
             {
@@ -74,7 +75,7 @@ namespace FeedCord.src.RssReader
 
             successCount = rssCount + youtubeCount;
 
-            logger.LogInformation("Tested successfully for {UrlCount} out of {TotalUrls} Urls in Configuration File", successCount, totalUrls);
+            logger.LogInformation("{id}: Tested successfully for {UrlCount} out of {TotalUrls} Urls in Configuration File", id, successCount, totalUrls);
         }
 
         private async Task<int> GetSuccessCount(string[] urls, bool isYoutube)
@@ -174,7 +175,7 @@ namespace FeedCord.src.RssReader
 
             if (post.PublishDate <= rssFeed.Value)
             {
-                return;
+                //return;
             }
 
             if (isYoutube)

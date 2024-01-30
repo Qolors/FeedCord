@@ -5,7 +5,7 @@
 ---
 
 ### Property References
-
+- **Id**: The unique name of the RSS Feed Service. Helpful for logging purposes.
 - **RssUrls**: The list of RSS Feeds you want to get posts from. You need **at least 1 Url** here.
 - **DiscordWebhookUrl**: The created Webhook from your designated Discord Text Channel.
 - **RssCheckIntervalMinutes**: How often you want to check for new Posts from all of your Url feeds in minutes.
@@ -17,6 +17,7 @@
 - **FallbackImage**: FeedCord always attemps to grab the webpage's image from metadata. If for some reason this fails, it will display this image instead.
 - **Color**: Color of the Post's embedded message.
 - **DescriptionLimit**: Limits the length of the description of the post to this number.
+- **Forum**: Determines if the post will be sent to a Forum type channel.
 
 ---
 

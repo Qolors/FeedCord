@@ -15,9 +15,9 @@ namespace FeedCord.src.Factories
             _serviceProvider = serviceProvider;
         }
 
-        public INotifier Create(Config config)
+        public INotifier Create(Config config, IDiscordPayloadService discordPayloadService)
         {
-            return ActivatorUtilities.CreateInstance<Notifier>(_serviceProvider, config);
+            return ActivatorUtilities.CreateInstance<Notifier>(_serviceProvider, config, discordPayloadService);
         }
     }
 }
