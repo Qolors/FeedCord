@@ -11,6 +11,7 @@ With the latest 2.0.0 release, FeedCord now supports multiple Webhook URLs, as w
 If you are looking to transition to 2.0.0+ from 1.x.x, please see the [Migration Guide](https://github.com/Qolors/FeedCord/blob/master/FeedCord/docs/feedcord_2_x_x.md)
 
 If you wish to show your support
+
 <a href="https://www.buymeacoffee.com/Qolors" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
 ---
 
