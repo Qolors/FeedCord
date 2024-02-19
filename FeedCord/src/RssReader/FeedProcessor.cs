@@ -27,6 +27,7 @@ namespace FeedCord.src.RssReader
         {
             this.config = config;
             this.httpClient = httpClientFactory.CreateClient("Default");
+            this.httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3");
             this.rssProcessorService = rssProcessorService;
             this.logger = logger;
         }
@@ -202,9 +203,7 @@ namespace FeedCord.src.RssReader
 
                 response.EnsureSuccessStatusCode();
 
-                string xmlContent = isYoutube ?
-                    await response.Content.ReadAsStringAsync() :
-                    url;
+                string xmlContent = await response.Content.ReadAsStringAsync();
 
                 return isYoutube ? 
                     await rssProcessorService.ParseYoutubeFeedAsync(xmlContent) :
