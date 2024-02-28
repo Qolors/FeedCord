@@ -24,7 +24,7 @@ namespace FeedCord.src.Services
             this.openGraphService = openGraphService;
         }
 
-        public async Task<Post?> ParseRssFeedAsync(string xmlContent, int trim)
+        public async Task<List<Post?>> ParseRssFeedAsync(string xmlContent, int trim)
         {
             string xmlContenter = xmlContent.Replace("<!doctype", "<!DOCTYPE");
 
@@ -34,55 +34,25 @@ namespace FeedCord.src.Services
 
                 var latestPost = feed.Items.FirstOrDefault();
 
-                if (latestPost == null)
+                if (latestPost is null)
                     return null;
 
-                string title;
-                string imageLink;
-                string description;
-                string link;
-                string subtitle;
-                DateTime pubDate;
+                var feedItems = feed.Items.ToList();
 
-                if (latestPost.SpecificItem is AtomFeedItem)
+                List<Post?> posts = new();
+
+                foreach (var post in feedItems)
                 {
-                    XNamespace mediaNs = "http://search.yahoo.com/mrss/";
+                    var builtPost = await TryBuildPost(post, feed, trim);
 
-                    var sortedItems = feed.Items.OrderByDescending(item => item.PublishingDate).ToList();
-
-                    // The first item in the sorted list will be the latest post
-                    latestPost = sortedItems.FirstOrDefault(); 
-
-                    var atomItem = latestPost.SpecificItem as AtomFeedItem;
-
-                    var mediaThumbnail = atomItem.Element.Element(mediaNs + "thumbnail");
-
-                    title = atomItem.Title;
-                    imageLink = mediaThumbnail?.Attribute("url")?.Value ?? feed.ImageUrl;
-                    description = StringHelper.StripTags(atomItem.Content ?? string.Empty);
-                    link = atomItem.Links.FirstOrDefault()?.Href ?? string.Empty;
-                    subtitle = feed.Title;
-                    pubDate = DateTime.TryParse(atomItem.PublishedDate.ToString(), out var tempDate) ? tempDate : default;
-                }
-                else
-                {
-                    title = latestPost.Title;
-                    imageLink = await openGraphService.ExtractImageUrl(latestPost.Link) ?? feed.ImageUrl;
-                    description = StringHelper.StripTags(latestPost.Description ?? string.Empty);
-                    link = latestPost.Link ?? string.Empty;
-                    subtitle = feed.Title;
-                    pubDate = DateTime.TryParse(latestPost.PublishingDate.ToString(), out var tempDate) ? tempDate : default;
-                }
-
-                if (trim != 0)
-                {
-                    if (description.Length > trim)
+                    if (builtPost is not null)
                     {
-                        description = description.Substring(0, trim) + "...";
+                        posts.Add(builtPost);
                     }
                 }
 
-                return new Post(title, imageLink, description, link, subtitle, pubDate);
+                return posts;
+
             }
             catch (Exception ex)
             {
@@ -94,6 +64,51 @@ namespace FeedCord.src.Services
         public async Task<Post?> ParseYoutubeFeedAsync(string channelUrl)
         {
             return await youtubeParsingService.GetXmlUrlAndFeed(channelUrl);
+        }
+
+        private async Task<Post?> TryBuildPost(FeedItem post, Feed feed, int trim)
+        {
+            string title;
+            string imageLink;
+            string description;
+            string link;
+            string subtitle;
+            DateTime pubDate;
+
+            if (post.SpecificItem is AtomFeedItem)
+            {
+                XNamespace mediaNs = "http://search.yahoo.com/mrss/";
+
+                var atomItem = post.SpecificItem as AtomFeedItem;
+
+                var mediaThumbnail = atomItem.Element.Element(mediaNs + "thumbnail");
+
+                title = atomItem.Title;
+                imageLink = mediaThumbnail?.Attribute("url")?.Value ?? feed.ImageUrl;
+                description = StringHelper.StripTags(atomItem.Content ?? string.Empty);
+                link = atomItem.Links.FirstOrDefault()?.Href ?? string.Empty;
+                subtitle = feed.Title;
+                pubDate = DateTime.TryParse(atomItem.PublishedDate.ToString(), out var tempDate) ? tempDate : default;
+            }
+            else
+            {
+                title = post.Title;
+                imageLink = await openGraphService.ExtractImageUrl(post.Link) ?? feed.ImageUrl;
+                description = StringHelper.StripTags(post.Description ?? string.Empty);
+                link = post.Link ?? string.Empty;
+                subtitle = feed.Title;
+                pubDate = DateTime.TryParse(post.PublishingDate.ToString(), out var tempDate) ? tempDate : default;
+            }
+
+            if (trim != 0)
+            {
+                if (description.Length > trim)
+                {
+                    description = description.Substring(0, trim) + "...";
+                }
+            }
+
+            return new Post(title, imageLink, description, link, subtitle, pubDate);
         }
     }
 }

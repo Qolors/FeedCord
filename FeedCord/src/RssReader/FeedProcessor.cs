@@ -1,5 +1,6 @@
 ﻿using FeedCord.src.Common;
 using FeedCord.src.Common.Interfaces;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
@@ -139,63 +140,122 @@ namespace FeedCord.src.RssReader
         {
             logger.LogInformation("Checking if any new posts for {RssFeedKey}...", rssFeed.Key);
 
-            var post = await CheckFeedForUpdatesAsync(rssFeed.Key, isYoutube, trim);
+            //TODO --> IN NEED OF MAJOR REFACTORING
 
-            if (post is null)
+            if (isYoutube)
             {
-                rssFeedErrorTracker[rssFeed.Key]++;
-                logger.LogWarning("Failed to fetch or process the RSS feed from {Url}.. Error Count: {ErrorCount}", rssFeed.Key, rssFeedErrorTracker[rssFeed.Key]);
+                var post = await CheckFeedForUpdatesAsync(rssFeed.Key, trim);
 
-                if (rssFeedErrorTracker[rssFeed.Key] >= 3)
+                if (post is null)
                 {
-                    if (config.EnableAutoRemove)
-                    {
-                        logger.LogWarning("Removing Url: {Url} from the list of RSS feeds due to too many errors", rssFeed.Key);
+                    rssFeedErrorTracker[rssFeed.Key]++;
 
-                        if (youtubeFeedData.ContainsKey(rssFeed.Key))
+                    logger.LogWarning("Failed to fetch or process the RSS feed from {Url}.. Error Count: {ErrorCount}", rssFeed.Key, rssFeedErrorTracker[rssFeed.Key]);
+
+                    if (rssFeedErrorTracker[rssFeed.Key] >= 3)
+                    {
+                        if (config.EnableAutoRemove)
                         {
-                            youtubeFeedData.Remove(rssFeed.Key);
+                            logger.LogWarning("Removing Url: {Url} from the list of RSS feeds due to too many errors", rssFeed.Key);
+
+                            if (youtubeFeedData.ContainsKey(rssFeed.Key))
+                            {
+                                youtubeFeedData.Remove(rssFeed.Key);
+                            }
+                            else if (rssFeedData.ContainsKey(rssFeed.Key))
+                            {
+                                rssFeedData.Remove(rssFeed.Key);
+                            }
+
+                            rssFeedErrorTracker.Remove(rssFeed.Key);
                         }
-                        else if (rssFeedData.ContainsKey(rssFeed.Key))
+                        else
                         {
-                            rssFeedData.Remove(rssFeed.Key);
+                            logger.LogWarning("Recommend enabling Auto Remove or manually removing the url from the config file");
                         }
 
-                        rssFeedErrorTracker.Remove(rssFeed.Key);
-                    }
-                    else
-                    {
-                        logger.LogWarning("Recommend enabling Auto Remove or manually removing the url from the config file");
+                        return;
                     }
 
                     return;
                 }
 
-                return;
-            }
+                if (post.PublishDate <= rssFeed.Value)
+                {
+                    return;
+                }
 
-            if (post.PublishDate <= rssFeed.Value)
-            {
-                return;
-            }
-
-            if (isYoutube)
-            {
                 youtubeFeedData[rssFeed.Key] = post.PublishDate;
+
+                newPosts.Add(post);
             }
             else
             {
-                rssFeedData[rssFeed.Key] = post.PublishDate;
-            }
+                var posts = await CheckRssFeedForUpdatesAsync(rssFeed.Key, trim);
 
-            newPosts.Add(post);
+                if (posts is null)
+                {
+                    rssFeedErrorTracker[rssFeed.Key]++;
+
+                    logger.LogWarning("Failed to fetch or process the RSS feed from {Url}.. Error Count: {ErrorCount}", rssFeed.Key, rssFeedErrorTracker[rssFeed.Key]);
+
+                    if (rssFeedErrorTracker[rssFeed.Key] >= 3)
+                    {
+                        if (config.EnableAutoRemove)
+                        {
+                            logger.LogWarning("Removing Url: {Url} from the list of RSS feeds due to too many errors", rssFeed.Key);
+
+                            if (youtubeFeedData.ContainsKey(rssFeed.Key))
+                            {
+                                youtubeFeedData.Remove(rssFeed.Key);
+                            }
+                            else if (rssFeedData.ContainsKey(rssFeed.Key))
+                            {
+                                rssFeedData.Remove(rssFeed.Key);
+                            }
+
+                            rssFeedErrorTracker.Remove(rssFeed.Key);
+                        }
+                        else
+                        {
+                            logger.LogWarning("Recommend enabling Auto Remove or manually removing the url from the config file");
+                        }
+                    }
+                    return;
+                }
+
+                var sortedPosts = posts.Where(p => p is not null).OrderByDescending(p => p!.PublishDate).ToList();
+
+                var tempList = new List<Post?>();
+
+                foreach (var post in sortedPosts)
+                {
+                    if (post.PublishDate <= rssFeed.Value)
+                    {
+                        continue;
+                    }
+
+                    tempList.Add(post);
+                }
+
+                if (tempList.Any())
+                {
+                    rssFeedData[rssFeed.Key] = tempList.OrderByDescending(p => p!.PublishDate).First()!.PublishDate;
+
+                    foreach (var post in tempList)
+                    {
+                        newPosts.Add(post!);
+                    }
+                }
+                
+            }
 
             logger.LogInformation("Found new post for Url: {RssFeedKey}", rssFeed.Key);
         }
 
 
 
-        private async Task<Post?> CheckFeedForUpdatesAsync(string url, bool isYoutube, int trim)
+        private async Task<Post?> CheckFeedForUpdatesAsync(string url, int trim)
         {
             try
             {
@@ -205,10 +265,32 @@ namespace FeedCord.src.RssReader
 
                 string xmlContent = await response.Content.ReadAsStringAsync();
 
-                return isYoutube ? 
-                    await rssProcessorService.ParseYoutubeFeedAsync(xmlContent) :
-                    await rssProcessorService.ParseRssFeedAsync(xmlContent, trim);
+                return await rssProcessorService.ParseYoutubeFeedAsync(xmlContent);
                     
+            }
+            catch (HttpRequestException ex)
+            {
+                logger.LogWarning("Failed to fetch or process the RSS feed from {Url}: Response Ended Prematurely - Skipping Url", url);
+                return null;
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "An unexpected error occurred while checking the RSS feed from {Url}", url);
+                return null;
+            }
+        }
+
+        private async Task<List<Post?>> CheckRssFeedForUpdatesAsync(string url, int trim)
+        {
+            try
+            {
+                var response = await httpClient.GetAsync(url);
+
+                response.EnsureSuccessStatusCode();
+
+                string xmlContent = await response.Content.ReadAsStringAsync();
+
+                return await rssProcessorService.ParseRssFeedAsync(xmlContent, trim);
             }
             catch (HttpRequestException ex)
             {

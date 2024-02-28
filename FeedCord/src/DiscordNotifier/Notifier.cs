@@ -1,6 +1,5 @@
 ﻿using FeedCord.src.Common;
 using FeedCord.src.Common.Interfaces;
-using FeedCord.src.Services;
 using Microsoft.Extensions.Logging;
 using System.Net;
 
@@ -16,10 +15,10 @@ namespace FeedCord.src.DiscordNotifier
         public Notifier(Config config, IHttpClientFactory httpClientFactory, ILogger<INotifier> logger, IDiscordPayloadService discordPayloadService) 
         {
             this.httpClient = httpClientFactory.CreateClient("Default");
-            this.logger = logger;
+            this.discordPayloadService = discordPayloadService;
             this.webhook = config.DiscordWebhookUrl;
             this.forum = config.Forum;
-            this.discordPayloadService = discordPayloadService;
+            this.logger = logger;
         }
         public async Task SendNotificationsAsync(List<Post> newPosts)
         {
@@ -46,7 +45,7 @@ namespace FeedCord.src.DiscordNotifier
                     logger.LogError("Received Status Code - {StatusCode}: Failed post to Discord Channel", response.StatusCode);
                 }
 
-                await Task.Delay(1000);
+                await Task.Delay(10000);
             }
         }
     }
