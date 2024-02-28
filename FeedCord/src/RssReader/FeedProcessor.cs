@@ -1,12 +1,7 @@
 ﻿using FeedCord.src.Common;
 using FeedCord.src.Common.Interfaces;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Net.Http;
-using System.Threading.Tasks;
 
 namespace FeedCord.src.RssReader
 {
@@ -48,8 +43,11 @@ namespace FeedCord.src.RssReader
         {
             ConcurrentBag<Post> newPosts = new();
 
-            var rsstasks = rssFeedData.Select(rssFeed => CheckAndAddNewPostAsync(rssFeed, newPosts, false, config.DescriptionLimit)).ToList();
-            var youtubetasks = youtubeFeedData.Select(youtubeFeed => CheckAndAddNewPostAsync(youtubeFeed, newPosts, true, config.DescriptionLimit)).ToList();
+            var rsstasks = rssFeedData.Select(rssFeed => 
+                CheckAndAddNewPostAsync(rssFeed, newPosts, false, config.DescriptionLimit)).ToList();
+            
+            var youtubetasks = youtubeFeedData.Select(youtubeFeed => 
+                CheckAndAddNewPostAsync(youtubeFeed, newPosts, true, config.DescriptionLimit)).ToList();
 
             var tasks = rsstasks.Concat(youtubetasks).ToList();
 
@@ -230,10 +228,12 @@ namespace FeedCord.src.RssReader
 
                 foreach (var post in sortedPosts)
                 {
-                    if (post.PublishDate <= rssFeed.Value)
+                    if (post!.PublishDate <= rssFeed.Value)
                     {
                         continue;
                     }
+
+                    logger.LogInformation("Found new post for Url: {RssFeedKey}", rssFeed.Key);
 
                     tempList.Add(post);
                 }
@@ -249,8 +249,6 @@ namespace FeedCord.src.RssReader
                 }
                 
             }
-
-            logger.LogInformation("Found new post for Url: {RssFeedKey}", rssFeed.Key);
         }
 
 

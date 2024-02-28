@@ -38,8 +38,7 @@ namespace FeedCord.src.Services
             }
             catch (Exception ex)
             {
-                logger.LogWarning("Error extracting the Image URL from source: {Source}", source);
-                logger.LogInformation("Using Fallback Image in Configuration at {CurrentTime}", DateTime.Now);
+                logger.LogWarning("Didn't find Image URL from source: {Source} - Using Fallback Image in Configuration", source);
                 return string.Empty;
             }
         }

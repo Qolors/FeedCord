@@ -6,13 +6,6 @@
 
 FeedCord is a dead-simple RSS Reader designed to integrate seamlessly with Discord. With just a few configuration steps, you can have a news feed text channel up and running in your server.
 
-With the latest 2.0.0 release, FeedCord now supports multiple Webhook URLs, as well as support for Discord's Forum Channels.
-
-If you are looking to transition to 2.0.0+ from 1.x.x, please see the [Migration Guide](https://github.com/Qolors/FeedCord/blob/master/FeedCord/docs/feedcord_2_x_x.md)
-
-If you wish to show your support
-
-<a href="https://www.buymeacoffee.com/Qolors" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
 ---
 
 ## Features
@@ -23,65 +16,92 @@ If you wish to show your support
 
 ---
 
-## Quick Setup (Docker)
+If you wish to show your support to help development
 
-### 1. Creating a Discord Webhook
+<a href="https://www.buymeacoffee.com/Qolors" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
+
+## Quick Setup (Docker)
 
 ![Discord Webhook](https://github.com/Qolors/FeedCord/blob/master/FeedCord/docs/images/webhooks.png)
 
 ---
 
-### 2. Setting Up FeedCord
+### Setting up appsettings.json
 
-**Step 1:** Create a `FeedCord` folder at your desired location.
-
-**Step 2:** Inside the `FeedCord` folder, create a configuration file named `appsettings.json` with the following content:
-
----
-#### For the Latest Versions (2.0.0+) please refer to the [Guide](https://github.com/Qolors/FeedCord/blob/master/FeedCord/docs/feedcord_2_x_x.md)
----
-#### For Version 1.3.0 and below
+Your `appsettings.json` is a collection of `instances:`
 
 ```json
 {
-  "RssUrls": [
-    "YOUR",
-    "RSS URLS",
-    "HERE"
-  ],
-  "YoutubeUrls": [
-    "YOUR",
-    "YOUTUBE CHANNEL URLS",
-    "HERE",
-    "eg. https://www.youtube.com/@IGN"
-  ],
-  "DiscordWebhookUrl": "https://discordapp.com/api/webhooks/1139357708546478200/ncB3dshJOPkQhthwOFQibeNt6YI-1_DiFbg0B3ZecfxchnbCGQNdG-m3PxqDdDSvt5Kk",
-  "RssCheckIntervalMinutes": 3,
-  "EnableAutoRemove": true,
-  "Username": "FeedCord",
-  "AvatarUrl": "https://i.imgur.com/1asmEAA.png",
-  "AuthorIcon": "https://i.imgur.com/1asmEAA.png",
-  "AuthorName": "FeedCord",
-  "AuthorUrl": "https://github.com/Qolors/FeedCord",
-  "FallbackImage": "https://i.imgur.com/f8M2Y5s.png",
-  "FooterImage": "https://i.imgur.com/f8M2Y5s.png",
-  "Color": 8411391,
-  "DescriptionLimit": 200
+    "Instances": [],
 }
 ```
+
+Each webhook gets one `instance`. Here's an example of a single instance:
+
+```json
+{
+     "Id": "Gaming News Channel",
+     "RssUrls": [
+       "https://examplesrssfeed1.com/rss",
+       "https://examplesrssfeed2.com/rss",
+       "https://examplesrssfeed3.com/rss",
+     ],
+     "YoutubeUrls": [ "" ],
+     "DiscordWebhookUrl": "https://discord.com/api/webhooks/...",
+     "RssCheckIntervalMinutes": 3,
+     "EnableAutoRemove": true,
+     "Color": 8411391,
+     "DescriptionLimit": 200,
+     "Forum": true
+}
+```
+
+Here is an appsettings.json example of running two webhooks for two different channels:
+
+```json
+{
+	"Instances": [
+		{
+			"Id": "Gaming News Channel",
+			"RssUrls": [
+				"https://examplesrssfeed1.com/rss",
+				"https://examplesrssfeed2.com/rss",
+				"https://examplesrssfeed3.com/rss"
+			],
+			"YoutubeUrls": [ "" ],
+			"DiscordWebhookUrl": "https://discord.com/api/webhooks/...",
+			"RssCheckIntervalMinutes": 3,
+			"EnableAutoRemove": true,
+			"Color": 8411391,
+			"DescriptionLimit": 200,
+			"Forum": true
+		},
+		{
+			"Id": "Tech News Channel",
+			"RssUrls": [
+				"https://examplesrssfeed4.com/rss",
+				"https://examplesrssfeed5.com/rss",
+				"https://examplesrssfeed6.com/rss"
+			],
+			"YoutubeUrls": [ "" ],
+			"DiscordWebhookUrl": "https://discord.com/api/webhooks/...",
+			"RssCheckIntervalMinutes": 3,
+			"EnableAutoRemove": true,
+			"Color": 8411391,
+			"DescriptionLimit": 200,
+			"Forum": true
+		}
+	]
+}
+```
+
+There are more optional properties to configure. You can view all properties and their purpose [here](https://github.com/Qolors/FeedCord/blob/master/FeedCord/docs/reference.md)
+
 ---
-Make sure to replace placeholders (e.g., `YOUR RSS URLS HERE`, `YOUR_WEBHOOK_URL_HERE`) with your actual data.
-You can see what each property does [here](https://github.com/Qolors/FeedCord/blob/master/FeedCord/docs/reference.md).
 
-**Note:**: For a Youtube Channel FeedCord handles retreiving the RSS/XML Url for you. This means you just need to provide the Youtube Channel's home page url. This will look something like:
-- 'https://www.youtube.com/@APopularChannel'
-- 'https://www.youtube.com/channel/UCVfiai2'
+### Setting up docker-compose.yaml
 
----
-
-### 3. Docker Deployment
-
-**Step 1:** In the `FeedCord` folder, create a Docker Compose file named `docker-compose.yaml`:
+Your `docker-compose.yaml` will look be set up like this:
 
 ```yaml
 version: "3.9"
@@ -100,7 +120,11 @@ Replace `./PATH/TO/MY/JSON/FILE/` with the actual path to your `appsettings.json
 
 **Note:** Depending on your architecture, use `qolors/feedcord:latest` for amd64 architecture, or `qolors/feedcord:latest-arm64` for arm64 architecture. Ensure to uncomment the appropriate line in the docker-compose.yml as per your system's architecture. If you need a different please open a request.
 
-**Step 2:** Navigate to your `FeedCord` directory in your terminal and run:
+---
+
+### Running FeedCord
+
+In the folder you created, run the following command from your terminal:
 
 ```
 docker-compose up -d
@@ -117,6 +141,7 @@ followed by
 docker-compose up -d
 ```
 This will pull the latest image and restart your current container with it
+
 ---
 
 ## Done
@@ -131,6 +156,22 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+<details>
+ <summary>[2.1.0] - 2024-02-28</summary>
+
+ ### Added
+ 
+ - Added Support for grabbing multiple new posts if the feed has multiple new posts since the last check.
+
+ ### Changed
+ 
+ - Improved Documentation for easier setup and understanding
+ - Improved Logging for better readability
+ - Posting now has a hard-coded 10 second buffer so large feeds respect Discord's rate limits
+
+</details>
+
 
 <details>
   <summary>[2.0.1] - 2024-02-19</summary>

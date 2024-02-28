@@ -3,12 +3,14 @@ using FeedCord.src.Common.Interfaces;
 using FeedCord.src.DiscordNotifier;
 using FeedCord.src.Factories;
 using FeedCord.src.Factories.Interfaces;
+using FeedCord.src.Helpers;
 using FeedCord.src.RssReader;
 using FeedCord.src.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Console;
 
 namespace FeedCord.src
 {
@@ -26,7 +28,10 @@ namespace FeedCord.src
                 .ConfigureLogging(logging =>
                 {
                     logging.ClearProviders();
-                    logging.AddConsole();
+                    logging.AddConsole(options =>
+                    {
+                        options.FormatterName = "customlogsformatter";
+                    }).AddConsoleFormatter<CustomLogsFormatter, ConsoleFormatterOptions>(options => { });
                     logging.AddFilter("Microsoft", LogLevel.Information);
                     logging.AddFilter("Microsoft.Hosting", LogLevel.Warning);
                     logging.AddFilter("System", LogLevel.Information);
