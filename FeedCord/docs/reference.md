@@ -6,6 +6,7 @@
 
 ### Property References
 - **Id**: The unique name of the RSS Feed Service. Helpful for logging purposes.
+- **Username**: The name of the bot that will be sending the messages.
 - **RssUrls**: The list of RSS Feeds you want to get posts from. You need **at least 1 Url** here.
 - **DiscordWebhookUrl**: The created Webhook from your designated Discord Text Channel.
 - **RssCheckIntervalMinutes**: How often you want to check for new Posts from all of your Url feeds in minutes.

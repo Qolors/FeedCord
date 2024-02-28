@@ -1,6 +1,5 @@
 ﻿using FeedCord.src.Common;
 using FeedCord.src.Common.Interfaces;
-using System.ComponentModel;
 using System.Text;
 using System.Text.Json;
 
@@ -24,7 +23,7 @@ namespace FeedCord.src.Services
         {
             var payload = new
             {
-                username = _config.Username ?? "",
+                username = _config.Username ?? "FeedCord",
                 avatar_url = _config.AvatarUrl ?? "",
                 embeds = new[]
                 {

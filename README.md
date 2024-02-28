@@ -63,6 +63,7 @@ Here is an appsettings.json example of running two webhooks for two different ch
 	"Instances": [
 		{
 			"Id": "Gaming News Channel",
+			"Username": "Gaming News",
 			"RssUrls": [
 				"https://examplesrssfeed1.com/rss",
 				"https://examplesrssfeed2.com/rss",
@@ -78,6 +79,7 @@ Here is an appsettings.json example of running two webhooks for two different ch
 		},
 		{
 			"Id": "Tech News Channel",
+			"Username": "Tech News",
 			"RssUrls": [
 				"https://examplesrssfeed4.com/rss",
 				"https://examplesrssfeed5.com/rss",
