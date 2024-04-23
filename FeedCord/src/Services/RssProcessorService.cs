@@ -74,6 +74,7 @@ namespace FeedCord.src.Services
             string link;
             string subtitle;
             DateTime pubDate;
+            string author;
 
             if (post.SpecificItem is AtomFeedItem)
             {
@@ -89,6 +90,10 @@ namespace FeedCord.src.Services
                 link = atomItem.Links.FirstOrDefault()?.Href ?? string.Empty;
                 subtitle = feed.Title;
                 pubDate = DateTime.TryParse(atomItem.PublishedDate.ToString(), out var tempDate) ? tempDate : default;
+                author = !string.IsNullOrEmpty(post.Author) ? post.Author :
+                         !string.IsNullOrEmpty((post.SpecificItem as MediaRssFeedItem)?.DC.Creator) ? (post.SpecificItem as MediaRssFeedItem).DC.Creator :
+                         !string.IsNullOrEmpty((post.SpecificItem as MediaRssFeedItem)?.Source.Value) ? (post.SpecificItem as MediaRssFeedItem).Source.Value :
+                         "";
             }
             else
             {
@@ -98,6 +103,10 @@ namespace FeedCord.src.Services
                 link = post.Link ?? string.Empty;
                 subtitle = feed.Title;
                 pubDate = DateTime.TryParse(post.PublishingDate.ToString(), out var tempDate) ? tempDate : default;
+                author = !string.IsNullOrEmpty(post.Author) ? post.Author :
+                         !string.IsNullOrEmpty((post.SpecificItem as MediaRssFeedItem)?.DC.Creator) ? (post.SpecificItem as MediaRssFeedItem).DC.Creator :
+                         !string.IsNullOrEmpty((post.SpecificItem as MediaRssFeedItem)?.Source.Value) ? (post.SpecificItem as MediaRssFeedItem).Source.Value :
+                         "";
             }
 
             if (trim != 0)
@@ -108,7 +117,7 @@ namespace FeedCord.src.Services
                 }
             }
 
-            return new Post(title, imageLink, description, link, subtitle, pubDate);
+            return new Post(title, imageLink, description, link, subtitle, pubDate, author);
         }
     }
 }

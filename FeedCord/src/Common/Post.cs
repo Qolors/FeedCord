@@ -8,6 +8,7 @@ namespace FeedCord.src.Common
         string Description,
         string Link,
         string Tag,
-        DateTime PublishDate
+        DateTime PublishDate,
+        string Author
         );
 }

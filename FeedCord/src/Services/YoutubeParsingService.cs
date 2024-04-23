@@ -59,8 +59,9 @@ namespace FeedCord.src.Services
                 var videoLink = videoEntry.Element(atomNs + "link").Attribute("href").Value ?? string.Empty;
                 var videoThumbnail = videoEntry.Element(mediaNs + "group").Element(mediaNs + "thumbnail").Attribute("url").Value ?? string.Empty;
                 DateTime videoPublished = DateTime.Parse(videoEntry.Element(atomNs + "published").Value);
+                string videoAuthor = videoEntry.Element(atomNs + "author")?.Element(atomNs + "name")?.Value ?? string.Empty;
 
-                return new Post(videoTitle, videoThumbnail, string.Empty, videoLink, channelTitle, videoPublished);
+                return new Post(videoTitle, videoThumbnail, string.Empty, videoLink, channelTitle, videoPublished, videoAuthor);
             }
             catch(Exception ex)
             {
