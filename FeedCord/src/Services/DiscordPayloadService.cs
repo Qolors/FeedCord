@@ -32,7 +32,7 @@ namespace FeedCord.src.Services
                         title = post.Title,
                         author = new
                         {
-                            name = _config.AuthorName ?? "",
+                            name = _config.AuthorName ?? post.Author,
                             url = _config.AuthorUrl ?? "",
                             icon_url = _config.AuthorIcon ?? ""
                         },
