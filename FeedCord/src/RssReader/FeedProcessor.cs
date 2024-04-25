@@ -2,8 +2,6 @@
 using FeedCord.src.Common.Interfaces;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
-using System.IO.Compression;
-using System.Text;
 
 namespace FeedCord.src.RssReader
 {
@@ -288,20 +286,9 @@ namespace FeedCord.src.RssReader
 
                 response.EnsureSuccessStatusCode();
 
-                if (response.Content.Headers.ContentEncoding.Contains("gzip"))
-                {
-                    using (var decompressedStream = new GZipStream(await response.Content.ReadAsStreamAsync(), CompressionMode.Decompress))
-                    using (var reader = new StreamReader(decompressedStream, Encoding.UTF8))
-                    {
-                        string xmlContent = await reader.ReadToEndAsync();
-                        return await rssProcessorService.ParseRssFeedAsync(xmlContent, trim);
-                    }
-                }
-                else
-                {
-                    string xmlContent = await response.Content.ReadAsStringAsync();
-                    return await rssProcessorService.ParseRssFeedAsync(xmlContent, trim);
-                }
+                string xmlContent = await response.Content.ReadAsStringAsync();
+
+                return await rssProcessorService.ParseRssFeedAsync(xmlContent, trim);
             }
             catch (HttpRequestException ex)
             {
