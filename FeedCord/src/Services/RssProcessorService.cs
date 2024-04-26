@@ -90,10 +90,7 @@ namespace FeedCord.src.Services
                 link = atomItem.Links.FirstOrDefault()?.Href ?? string.Empty;
                 subtitle = feed.Title;
                 pubDate = DateTime.TryParse(atomItem.PublishedDate.ToString(), out var tempDate) ? tempDate : default;
-                author = !string.IsNullOrEmpty(post.Author) ? post.Author :
-                         !string.IsNullOrEmpty((post.SpecificItem as MediaRssFeedItem)?.DC.Creator) ? (post.SpecificItem as MediaRssFeedItem).DC.Creator :
-                         !string.IsNullOrEmpty((post.SpecificItem as MediaRssFeedItem)?.Source.Value) ? (post.SpecificItem as MediaRssFeedItem).Source.Value :
-                         "";
+                author = GetAuthor(post);
             }
             else
             {
@@ -103,10 +100,7 @@ namespace FeedCord.src.Services
                 link = post.Link ?? string.Empty;
                 subtitle = feed.Title;
                 pubDate = DateTime.TryParse(post.PublishingDate.ToString(), out var tempDate) ? tempDate : default;
-                author = !string.IsNullOrEmpty(post.Author) ? post.Author :
-                         !string.IsNullOrEmpty((post.SpecificItem as MediaRssFeedItem)?.DC.Creator) ? (post.SpecificItem as MediaRssFeedItem).DC.Creator :
-                         !string.IsNullOrEmpty((post.SpecificItem as MediaRssFeedItem)?.Source.Value) ? (post.SpecificItem as MediaRssFeedItem).Source.Value :
-                         "";
+                author = GetAuthor(post);
             }
 
             if (trim != 0)
