@@ -1,4 +1,5 @@
 ﻿using FeedCord.src.Common.Interfaces;
+using FeedCord.src.Helpers;
 using Microsoft.Extensions.Logging;
 
 namespace FeedCord.src.Services
@@ -21,6 +22,7 @@ namespace FeedCord.src.Services
 
             try
             {
+                var httpClient = new HttpClient();
                 HttpResponseMessage response = await httpClient.GetAsync(source);
                 response.EnsureSuccessStatusCode();
 
