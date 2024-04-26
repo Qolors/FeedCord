@@ -1,6 +1,7 @@
 using System.Xml.Linq;
 using FeedCord.src.Common;
 using FeedCord.src.Common.Interfaces;
+using FeedCord.src.Helpers;
 using HtmlAgilityPack;
 using Microsoft.Extensions.Logging;
 
@@ -39,6 +40,7 @@ namespace FeedCord.src.Services
 
             try
             {
+                var httpClient = new CustomHttpClient();
                 HttpResponseMessage response = await httpClient.GetAsync(xmlUrl);
                 response.EnsureSuccessStatusCode();
 
