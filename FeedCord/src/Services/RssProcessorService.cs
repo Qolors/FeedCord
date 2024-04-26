@@ -1,4 +1,4 @@
-﻿using CodeHollow.FeedReader;
+using CodeHollow.FeedReader;
 using CodeHollow.FeedReader.Feeds;
 using FeedCord.src.Common;
 using FeedCord.src.Common.Interfaces;
@@ -90,7 +90,10 @@ namespace FeedCord.src.Services
                 link = atomItem.Links.FirstOrDefault()?.Href ?? string.Empty;
                 subtitle = feed.Title;
                 pubDate = DateTime.TryParse(atomItem.PublishedDate.ToString(), out var tempDate) ? tempDate : default;
-                author = GetAuthor(post);
+                author = !string.IsNullOrEmpty(post.Author) ? post.Author :
+                         !string.IsNullOrEmpty((post.SpecificItem as MediaRssFeedItem)?.DC.Creator) ? (post.SpecificItem as MediaRssFeedItem).DC.Creator :
+                         !string.IsNullOrEmpty((post.SpecificItem as MediaRssFeedItem)?.Source.Value) ? (post.SpecificItem as MediaRssFeedItem).Source.Value :
+                         "";
             }
             else
             {
@@ -100,7 +103,10 @@ namespace FeedCord.src.Services
                 link = post.Link ?? string.Empty;
                 subtitle = feed.Title;
                 pubDate = DateTime.TryParse(post.PublishingDate.ToString(), out var tempDate) ? tempDate : default;
-                author = GetAuthor(post);
+                author = !string.IsNullOrEmpty(post.Author) ? post.Author :
+                         !string.IsNullOrEmpty((post.SpecificItem as MediaRssFeedItem)?.DC.Creator) ? (post.SpecificItem as MediaRssFeedItem).DC.Creator :
+                         !string.IsNullOrEmpty((post.SpecificItem as MediaRssFeedItem)?.Source.Value) ? (post.SpecificItem as MediaRssFeedItem).Source.Value :
+                         "";
             }
 
             if (trim != 0)
