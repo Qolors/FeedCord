@@ -1,5 +1,6 @@
 ﻿using FeedCord.src.Common;
 using FeedCord.src.Common.Interfaces;
+using FeedCord.src.Helpers;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.IO.Compression;
@@ -126,6 +127,7 @@ namespace FeedCord.src.RssReader
         {
             try
             {
+                var httpClient = new CustomHttpClient();
                 var response = await httpClient.GetAsync(url);
                 response.EnsureSuccessStatusCode();
                 return true;
@@ -259,6 +261,7 @@ namespace FeedCord.src.RssReader
         {
             try
             {
+                var httpClient = new CustomHttpClient();
                 var response = await httpClient.GetAsync(url);
 
                 response.EnsureSuccessStatusCode();
@@ -284,6 +287,7 @@ namespace FeedCord.src.RssReader
         {
             try
             {
+                var httpClient = new CustomHttpClient();
                 var response = await httpClient.GetAsync(url);
 
                 response.EnsureSuccessStatusCode();
