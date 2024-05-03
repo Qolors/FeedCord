@@ -27,19 +27,39 @@ namespace FeedCord.src.Helpers
             Uri uri = new Uri(url);
             string baseUrl = uri.GetLeftPart(UriPartial.Authority);
 
+            HttpClient httpClient = new HttpClient();
+            
+            //first attempt
+            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, url);
+            httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.5112.79 Safari/537.36");
+            HttpResponseMessage response = await httpClient.SendAsync(request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                return response;
+            }
+
+            //second attempt - using Google FeedFetcher
+            request = new HttpRequestMessage(HttpMethod.Get, url);
+            httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("FeedFetcher-Google");
+            response = await httpClient.SendAsync(request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                return response;
+            }
+
+            //last attempt - using user-agents found in robots.txt file
             string robotsUrl = new Uri(new Uri(baseUrl), "/robots.txt").AbsoluteUri;
-
             List<string> userAgents = await GetRobotsUserAgentsAsync(robotsUrl);
-
             if (userAgents != null && userAgents.Count > 0)
             {
                 foreach (var userAgent in userAgents)
                 {
-                    HttpClient httpClient = new HttpClient();
                     httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(userAgent);
-                    HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, url);
+                    request = new HttpRequestMessage(HttpMethod.Get, url);
                     request.Headers.Add("Accept", "*/*");
-                    HttpResponseMessage response = await httpClient.SendAsync(request);
+                    response = await httpClient.SendAsync(request);
 
                     if (response.IsSuccessStatusCode)
                     {
@@ -47,6 +67,7 @@ namespace FeedCord.src.Helpers
                     }
                 }
             }
+
             return oldResponse;
         }
 
