@@ -127,6 +127,9 @@ namespace FeedCord.src.RssReader
             try
             {
                 var response = await httpClient.GetAsync(url);
+                logger.LogInformation($"Status Code: {(int)response.StatusCode} {response.StatusCode}");
+                logger.LogInformation($"Headers: {response.Headers}");
+
                 response.EnsureSuccessStatusCode();
                 return true;
             }
@@ -182,6 +185,7 @@ namespace FeedCord.src.RssReader
 
                 if (post.PublishDate <= rssFeed.Value)
                 {
+                    this.logger.LogInformation($"Post publication date {post.PublishDate} is older than or equal to RSS feed value {rssFeed.Value} - Skipping..");
                     return;
                 }
 
