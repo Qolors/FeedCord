@@ -7,9 +7,13 @@
 FeedCord is a dead-simple RSS Reader designed to integrate seamlessly with Discord. With just a few configuration steps, you can have a news feed text channel up and running in your server.
 
 ---
+~~
 ## 4/25/2024 - A Slight Pause In Development
 
 Due to work and relocating, I will be taking a brief pause in development for this software. I plan to pick development back up in late June/beginning of July this year. Feel free to open issues, but know that I myself won't be getting to them for some time. I will gladly take pull requests in the meantime. Thanks for the support!
+~~
+
+## 1/30/2025 - Resumed Development
 
 ## Features
 
