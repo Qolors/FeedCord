@@ -26,5 +26,6 @@ jobs:
         with:
           context: .
           push: true
+          dockerfile: FeedCord/Dockerfile
           tags: qolors/feedcord:beta
           platforms: linux/amd64,linux/arm64
