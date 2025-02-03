@@ -9,27 +9,34 @@ namespace FeedCord.src.Infrastructure.Http
     {
         private readonly HttpClient _innerClient;
         private readonly ILogger<CustomHttpClient> logger;
-        public CustomHttpClient(HttpClient innerClient, ILogger<CustomHttpClient> logger)
+        private readonly SemaphoreSlim throttle;
+        public CustomHttpClient(ILogger<CustomHttpClient> logger, HttpClient innerClient, SemaphoreSlim throttle)
         {
             this.logger = logger;
+            this.throttle = throttle;
             _innerClient = innerClient;
         }
 
         public async Task<HttpResponseMessage> GetAsyncWithFallback(string url)
         {
+            await throttle.WaitAsync();
+
             var response = await _innerClient.GetAsync(url);
 
             if (!response.IsSuccessStatusCode)
             {
-                logger.LogInformation("Received Status Code - {StatusCode}: Failed GET Request to RSS Feed: {Url} - Attempting Alternative Requests..", response.StatusCode, url);
                 response = await TryAlternativeAsync(url, response);
             }
+
+            throttle.Release();
 
             return response;
         }
 
         public async Task PostAsyncWithFallback(string url, StringContent forumChannelContent, StringContent textChannelContent, bool isForum)
         {
+            await throttle.WaitAsync();
+
             var response = await _innerClient.PostAsync(url, isForum ? forumChannelContent : textChannelContent);
 
             if (response.StatusCode == HttpStatusCode.NoContent)
@@ -39,13 +46,13 @@ namespace FeedCord.src.Infrastructure.Http
             else
             {
                 string channelType = isForum ? "Forum" : "Text";
-                logger.LogError("Received Status Code - {StatusCode}: Failed post to Discord Channel Type - {ChannelType} - Attempting Channel Type Switch", response.StatusCode, channelType);
+
+                await throttle.WaitAsync();
 
                 response = await _innerClient.PostAsync(url, !isForum ? forumChannelContent : textChannelContent);
 
                 if (response.StatusCode == HttpStatusCode.NoContent)
                 {
-                    logger.LogInformation("[{CurrentTime}]: Response - Successful: Posted new content to Discord Channel at {CurrentTime}", DateTime.Now, DateTime.Now);
                     logger.LogWarning("Successfully posted to Discord Channel after switching channel type - Change Forum Property in Config!!");
                 }
                 else
@@ -53,6 +60,8 @@ namespace FeedCord.src.Infrastructure.Http
                     logger.LogError("Failed to post to Discord Channel after fallback attempts: {Url}", url);
                 }
             }
+
+            throttle.Release();
         }
 
         private async Task<HttpResponseMessage> TryAlternativeAsync(string url, HttpResponseMessage oldResponse)
@@ -63,22 +72,26 @@ namespace FeedCord.src.Infrastructure.Http
             //USER MIMICK
             HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, url);
             request.Headers.UserAgent.ParseAdd("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.5112.79 Safari/537.36");
+            
+            await throttle.WaitAsync();
             HttpResponseMessage response = await _innerClient.SendAsync(request);
+
 
             if (response.IsSuccessStatusCode)
             {
-                logger.LogInformation("-- Received Status Code - {StatusCode}: Successfully fetched RSS Feed after mimicking User-Agent", response.StatusCode);
+                throttle.Release();
                 return response;
             }
 
             //GOOGLE FEED FETCHER
             request = new HttpRequestMessage(HttpMethod.Get, url);
             request.Headers.UserAgent.ParseAdd("FeedFetcher-Google");
+            await throttle.WaitAsync();
             response = await _innerClient.SendAsync(request);
 
             if (response.IsSuccessStatusCode)
             {
-                logger.LogInformation("-- Received Status Code - {StatusCode}: Successfully fetched RSS Feed after User Agent - Google Feed Fetcher", response.StatusCode);
+                throttle.Release();
                 return response;
             }
 
@@ -93,10 +106,11 @@ namespace FeedCord.src.Infrastructure.Http
                     request = new HttpRequestMessage(HttpMethod.Get, url);
                     request.Headers.UserAgent.ParseAdd(userAgent);
                     request.Headers.Add("Accept", "*/*");
+                    await throttle.WaitAsync();
                     response = await _innerClient.SendAsync(request);
                     if (response.IsSuccessStatusCode)
                     {
-                        logger.LogInformation("-- Received Status Code - {StatusCode}: Successfully fetched RSS Feed after pulling Robots.txt User-Agents", response.StatusCode);
+                        throttle.Release();
                         return response;
                     }
                 }
@@ -110,11 +124,16 @@ namespace FeedCord.src.Infrastructure.Http
         {
             try
             {
+                await throttle.WaitAsync();
                 return await _innerClient.GetStringAsync(url);
             }
             catch
             {
                 return string.Empty;
+            }
+            finally
+            {
+                throttle.Release();
             }
         }
 

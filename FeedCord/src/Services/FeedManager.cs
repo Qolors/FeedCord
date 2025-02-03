@@ -72,7 +72,6 @@ namespace FeedCord.src.Services
             if (urls.Length == 0 || urls.Length == 1 && string.IsNullOrEmpty(urls[0]))
             {
                 string type = isYoutube ? "Youtube" : "RSS";
-                logger.LogInformation("No URLs in {type} feed, skipping...", type);
                 return successCount;
             }
 
@@ -168,8 +167,8 @@ namespace FeedCord.src.Services
                 return;
             }
 
-            var freshlyFetched = posts.Where(p => p.PublishDate > feedState.LastPublishDate).ToList();
-
+            //var freshlyFetched = posts.Where(p => p.PublishDate > feedState.LastPublishDate).ToList();
+            var freshlyFetched = posts;
             if (freshlyFetched.Any())
             {
                 feedState.LastPublishDate = freshlyFetched.Max(p => p.PublishDate);
@@ -261,11 +260,7 @@ namespace FeedCord.src.Services
                 logger.LogWarning("Removing Url: {Url} after too many errors", url);
                 bool successRemove = _feedStates.TryRemove(url, out _);
 
-                if (successRemove)
-                {
-                    logger.LogInformation("Successfully removed Url: {Url}", url);
-                }
-                else
+                if (!successRemove)
                 {
                     logger.LogWarning("Failed to remove Url: {Url}", url);
                 }

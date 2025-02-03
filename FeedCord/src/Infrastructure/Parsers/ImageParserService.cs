@@ -33,8 +33,10 @@ namespace FeedCord.src.Infrastructure.Parsers
 
                 string foundUrl =
                     GetMetaTagContent(doc, "property", "og:image")
+                    ?? GetRedditImg(doc)
                     ?? GetMetaTagContent(doc, "name", "twitter:image")
                     ?? GetLinkRel(doc, "image_src")
+                    
                     ?? GetFirstImg(doc);
 
                 if (string.IsNullOrEmpty(foundUrl))
@@ -70,6 +72,12 @@ namespace FeedCord.src.Infrastructure.Parsers
             var imgNode = doc.DocumentNode.SelectSingleNode("//img");
             return imgNode?.GetAttributeValue("src", null);
         }
+        private static string GetRedditImg(HtmlDocument doc)
+        {
+            var redditImgNode = doc.DocumentNode.SelectSingleNode("//img[@id='post-image']");
+            return redditImgNode?.GetAttributeValue("src", null);
+        }
+
         private static string MakeAbsoluteUrl(string pageUrl, string foundUrl)
         {
             if (Uri.TryCreate(foundUrl, UriKind.Absolute, out var absolute))

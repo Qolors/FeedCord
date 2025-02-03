@@ -19,7 +19,6 @@ namespace FeedCord.src.Infrastructure.Parsers
 
         public async Task<Post?> GetXmlUrlAndFeed(string xml)
         {
-            logger.LogInformation("Parsing XML to find RSS feed link.");
 
             HtmlDocument doc = new HtmlDocument();
             doc.LoadHtml(xml);
@@ -29,7 +28,6 @@ namespace FeedCord.src.Infrastructure.Parsers
             if (node != null)
             {
                 var hrefValue = node.GetAttributeValue("href", "");
-                logger.LogInformation($"Found RSS feed URL: {hrefValue}");
                 return await GetRecentPost(hrefValue);
             }
 
@@ -41,7 +39,6 @@ namespace FeedCord.src.Infrastructure.Parsers
         {
             if (string.IsNullOrEmpty(xmlUrl))
             {
-                logger.LogInformation("Provided XML URL is null or empty.");
                 return null;
             }
 
@@ -51,7 +48,6 @@ namespace FeedCord.src.Infrastructure.Parsers
                 response.EnsureSuccessStatusCode();
 
                 string xmlContent = await response.Content.ReadAsStringAsync();
-                logger.LogInformation("Successfully retrieved RSS feed.");
 
                 XDocument xdoc = XDocument.Parse(xmlContent);
                 XNamespace atomNs = "http://www.w3.org/2005/Atom";
@@ -62,7 +58,6 @@ namespace FeedCord.src.Infrastructure.Parsers
 
                 if (videoEntry is null)
                 {
-                    logger.LogInformation("No recent post found in RSS feed.");
                     return null;
                 }
 

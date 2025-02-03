@@ -68,10 +68,6 @@ namespace FeedCord.src.Infrastructure.Workers
                 logger.LogInformation("{id}: Found {PostCount} new posts..", id, posts.Count);
                 await notifier.SendNotificationsAsync(posts);
             }
-            else
-            {
-                logger.LogInformation("{id}: Found no new posts. Ending background process..", id);
-            }
         }
 
         private void OnShutdown()

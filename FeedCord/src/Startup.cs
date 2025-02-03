@@ -60,13 +60,17 @@ namespace FeedCord.src
                 httpClient.Timeout = TimeSpan.FromSeconds(30);
             });
 
+            // Thread Limit
+            services.AddSingleton(new SemaphoreSlim(20));
+
             services.AddTransient<ICustomHttpClient, CustomHttpClient>(sp =>
             {
                 var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
                 var httpClient = httpClientFactory.CreateClient("Default");
                 var logger = sp.GetRequiredService<ILogger<CustomHttpClient>>();
+                var throttle = sp.GetRequiredService<SemaphoreSlim>();
 
-                return new CustomHttpClient(httpClient, logger);
+                return new CustomHttpClient(logger, httpClient, throttle);
             });
 
             services.AddTransient<IFeedWorkerFactory, FeedWorkerFactory>();
