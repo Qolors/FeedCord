@@ -18,7 +18,6 @@ namespace FeedCord.src.Common
 
         [Required(ErrorMessage = "RssCheckIntervalMinutes Property is required.")]
         public int RssCheckIntervalMinutes { get; set; }
-
         public string? Username { get; set; }
         public string? AvatarUrl { get; set; }
         public string? AuthorIcon { get; set; }

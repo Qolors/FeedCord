@@ -68,7 +68,7 @@ namespace FeedCord.src.Core
                         title = post.Title,
                         author = new
                         {
-                            name = _config.AuthorName ?? "",
+                            name = post.Author ?? _config.AuthorName ?? "",
                             url = _config.AuthorUrl ?? "",
                             icon_url = _config.AuthorIcon ?? ""
                         },

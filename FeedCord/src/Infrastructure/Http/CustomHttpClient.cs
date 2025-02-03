@@ -2,33 +2,49 @@
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using FeedCord.src.Services.Interfaces;
+using System.Collections.Concurrent;
 
 namespace FeedCord.src.Infrastructure.Http
 {
     public class CustomHttpClient : ICustomHttpClient
     {
+        // TODO --> Eventually move these to a config file
+        private const string USER_MIMICK = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.5112.79 Safari/537.36";
+        private const string GOOGLE_FEED_FETCHER = "FeedFetcher-Google";
+
         private readonly HttpClient _innerClient;
         private readonly ILogger<CustomHttpClient> logger;
         private readonly SemaphoreSlim throttle;
+        private ConcurrentDictionary<string, string> userAgentCache;
         public CustomHttpClient(ILogger<CustomHttpClient> logger, HttpClient innerClient, SemaphoreSlim throttle)
         {
             this.logger = logger;
             this.throttle = throttle;
             _innerClient = innerClient;
+            userAgentCache = new();
         }
 
         public async Task<HttpResponseMessage> GetAsyncWithFallback(string url)
         {
             await throttle.WaitAsync();
 
-            var response = await _innerClient.GetAsync(url);
+            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, url);
+
+            if (userAgentCache.ContainsKey(url))
+            {
+                request.Headers.UserAgent
+                    .ParseAdd(userAgentCache
+                    .TryGetValue(url, out string? userAgent) ? userAgent : "");
+            }
+
+            var response = await _innerClient.SendAsync(request);
+
+            throttle.Release();
 
             if (!response.IsSuccessStatusCode)
             {
                 response = await TryAlternativeAsync(url, response);
             }
-
-            throttle.Release();
 
             return response;
         }
@@ -71,7 +87,7 @@ namespace FeedCord.src.Infrastructure.Http
 
             //USER MIMICK
             HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, url);
-            request.Headers.UserAgent.ParseAdd("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.5112.79 Safari/537.36");
+            request.Headers.UserAgent.ParseAdd(USER_MIMICK);
             
             await throttle.WaitAsync();
             HttpResponseMessage response = await _innerClient.SendAsync(request);
@@ -79,18 +95,20 @@ namespace FeedCord.src.Infrastructure.Http
 
             if (response.IsSuccessStatusCode)
             {
+                userAgentCache.AddOrUpdate(url, USER_MIMICK, (key, oldValue) => USER_MIMICK);
                 throttle.Release();
                 return response;
             }
 
             //GOOGLE FEED FETCHER
             request = new HttpRequestMessage(HttpMethod.Get, url);
-            request.Headers.UserAgent.ParseAdd("FeedFetcher-Google");
+            request.Headers.UserAgent.ParseAdd(GOOGLE_FEED_FETCHER);
             await throttle.WaitAsync();
             response = await _innerClient.SendAsync(request);
 
             if (response.IsSuccessStatusCode)
             {
+                userAgentCache.AddOrUpdate(url, GOOGLE_FEED_FETCHER, (key, oldValue) => GOOGLE_FEED_FETCHER);
                 throttle.Release();
                 return response;
             }
@@ -102,7 +120,6 @@ namespace FeedCord.src.Infrastructure.Http
             {
                 foreach (var userAgent in userAgents)
                 {
-
                     request = new HttpRequestMessage(HttpMethod.Get, url);
                     request.Headers.UserAgent.ParseAdd(userAgent);
                     request.Headers.Add("Accept", "*/*");
@@ -110,6 +127,7 @@ namespace FeedCord.src.Infrastructure.Http
                     response = await _innerClient.SendAsync(request);
                     if (response.IsSuccessStatusCode)
                     {
+                        userAgentCache.AddOrUpdate(url, userAgent, (key, oldValue) => userAgent);
                         throttle.Release();
                         return response;
                     }
@@ -117,6 +135,7 @@ namespace FeedCord.src.Infrastructure.Http
             }
 
             logger.LogError("Failed to fetch RSS Feed after fallback attempts: {Url}", url);
+            throttle.Release();
             return oldResponse;
         }
 

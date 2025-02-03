@@ -57,11 +57,17 @@ namespace FeedCord.src
         {
             services.AddHttpClient("Default", httpClient =>
             {
-                httpClient.Timeout = TimeSpan.FromSeconds(30);
+                httpClient.Timeout = TimeSpan.FromSeconds(5);
             });
 
-            // Thread Limit
-            services.AddSingleton(new SemaphoreSlim(20));
+            int concurrentRequests = ctx.Configuration.GetValue<int>("ConcurrentRequests", 20);
+
+            if (concurrentRequests != 20)
+            {
+                Console.WriteLine($"Concurrent Requests set to: {concurrentRequests}");
+            }
+
+            services.AddSingleton(new SemaphoreSlim(concurrentRequests));
 
             services.AddTransient<ICustomHttpClient, CustomHttpClient>(sp =>
             {

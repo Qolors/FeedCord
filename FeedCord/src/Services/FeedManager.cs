@@ -168,7 +168,7 @@ namespace FeedCord.src.Services
             }
 
             var freshlyFetched = posts.Where(p => p.PublishDate > feedState.LastPublishDate).ToList();
-
+            
             if (freshlyFetched.Any())
             {
                 feedState.LastPublishDate = freshlyFetched.Max(p => p.PublishDate);
