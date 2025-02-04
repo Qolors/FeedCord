@@ -41,8 +41,10 @@ namespace FeedCord.src.Services
 
                 foreach (var post in feedItems)
                 {
+                    string rawXml = GetRawXmlForItem(post);
+
                     string imageLink = await imageParserService
-                        .TryExtractImageLink(post.Link) ?? feed.ImageUrl;
+                        .TryExtractImageLink(post.Link, rawXml) ?? feed.ImageUrl;
 
                     var builtPost = await PostBuilder.TryBuildPost(post, feed, trim, imageLink);
 
@@ -66,5 +68,20 @@ namespace FeedCord.src.Services
         {
             return await youtubeParsingService.GetXmlUrlAndFeed(channelUrl);
         }
+
+        private string GetRawXmlForItem(FeedItem feedItem)
+        {
+            if (feedItem.SpecificItem is CodeHollow.FeedReader.Feeds.Rss20FeedItem rssItem)
+            {
+                return rssItem.Element?.ToString() ?? "";
+            }
+            else if (feedItem.SpecificItem is CodeHollow.FeedReader.Feeds.AtomFeedItem atomItem)
+            {
+                return atomItem.Element?.ToString() ?? "";
+            }
+
+            return "";
+        }
+
     }
 }

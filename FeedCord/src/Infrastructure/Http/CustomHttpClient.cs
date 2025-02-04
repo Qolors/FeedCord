@@ -65,6 +65,8 @@ namespace FeedCord.src.Infrastructure.Http
 
                 await throttle.WaitAsync();
 
+                logger.LogError("Response Error: {ResponseError}", response.Content.ReadAsStringAsync().Result);
+
                 response = await _innerClient.PostAsync(url, !isForum ? forumChannelContent : textChannelContent);
 
                 if (response.StatusCode == HttpStatusCode.NoContent)
@@ -74,6 +76,7 @@ namespace FeedCord.src.Infrastructure.Http
                 else
                 {
                     logger.LogError("Failed to post to Discord Channel after fallback attempts: {Url}", url);
+                    
                 }
             }
 

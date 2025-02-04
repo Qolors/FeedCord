@@ -86,7 +86,7 @@ namespace FeedCord.src.Core
                         color = _config.Color,
                     }
                 },
-                thread_name = post.Title
+                thread_name = post.Title.Length > 100 ? post.Title[..99] : post.Title
             };
 
             var payloadJson = JsonSerializer.Serialize(payload, new JsonSerializerOptions
@@ -94,6 +94,8 @@ namespace FeedCord.src.Core
                 DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             });
+
+            Console.WriteLine(payloadJson);
 
             return new StringContent(payloadJson, Encoding.UTF8, "application/json");
         }
