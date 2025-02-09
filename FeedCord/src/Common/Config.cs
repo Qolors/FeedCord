@@ -35,5 +35,7 @@ namespace FeedCord.Common
         public int DescriptionLimit { get; set; }
         [Required(ErrorMessage = "Forum Property is required (True for Forum Channels, False for Text Channels)")]
         public bool Forum { get; set; }
+        [Required(ErrorMessage = "Markdown Property is required (True for Markdown Posts, False for Embed Posts)")]
+        public bool MarkdownFormat { get; set; }
     }
 }

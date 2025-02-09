@@ -2,6 +2,7 @@
 using FeedCord.Core.Interfaces;
 using System.Text;
 using System.Text.Json;
+using System.Net.Http;
 
 namespace FeedCord.Core
 {
@@ -16,6 +17,9 @@ namespace FeedCord.Core
 
         public StringContent BuildPayloadWithPost(Post post)
         {
+            if (_config.MarkdownFormat)
+                return GenerateMarkdown(post);
+            
             var payload = new
             {
                 username = _config.Username ?? "FeedCord",
@@ -58,6 +62,9 @@ namespace FeedCord.Core
 
         public StringContent BuildForumWithPost(Post post)
         {
+            if (_config.MarkdownFormat)
+                return GenerateMarkdown(post);
+            
             var payload = new
             {
                 content = post.Tag,
@@ -95,8 +102,49 @@ namespace FeedCord.Core
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             });
 
-            Console.WriteLine(payloadJson);
+            return new StringContent(payloadJson, Encoding.UTF8, "application/json");
+        }
+        
+        private StringContent GenerateMarkdown(Post post)
+        {
+            var markdownPost = $"""
+                                # {post.Title}
 
+                                > **Published**: {post.PublishDate:MMMM dd, yyyy}  
+                                > **Author**: {post.Author}  
+                                > **Feed**: {post.Tag}
+
+                                {post.Description}
+
+                                [Source]({post.Link})
+
+                                """;
+            object? payload = null;
+            
+            if (_config.Forum)
+            {
+                payload = new
+                {
+                    content = markdownPost,
+                    thread_name = post.Title.Length > 100 ? 
+                        post.Title[..99] : 
+                        post.Title
+                };
+            }
+            else
+            {
+                payload = new
+                {
+                    content = markdownPost
+                };
+            }
+            
+            var payloadJson = JsonSerializer.Serialize(payload, new JsonSerializerOptions
+            {
+                DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            });
+            
             return new StringContent(payloadJson, Encoding.UTF8, "application/json");
         }
     }
