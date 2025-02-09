@@ -1,10 +1,10 @@
-﻿using FeedCord.src.Common;
+﻿using FeedCord.Common;
 using Microsoft.Extensions.DependencyInjection;
-using FeedCord.src.Core.Interfaces;
-using FeedCord.src.Infrastructure.Notifiers;
-using FeedCord.src.Services.Interfaces;
+using FeedCord.Core.Interfaces;
+using FeedCord.Infrastructure.Notifiers;
+using FeedCord.Services.Interfaces;
 
-namespace FeedCord.src.Infrastructure.Factories
+namespace FeedCord.Infrastructure.Factories
 {
     public class NotifierFactory : INotifierFactory
     {

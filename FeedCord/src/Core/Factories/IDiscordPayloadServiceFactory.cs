@@ -1,7 +1,7 @@
-﻿using FeedCord.src.Common;
-using FeedCord.src.Core.Interfaces;
+﻿using FeedCord.Common;
+using FeedCord.Core.Interfaces;
 
-namespace FeedCord.src.Core.Factories
+namespace FeedCord.Core.Factories
 {
     public interface IDiscordPayloadServiceFactory
     {

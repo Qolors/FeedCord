@@ -1,13 +1,9 @@
-﻿using System;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Xml.Linq;
-using FeedCord.src.Infrastructure.Http;
-using FeedCord.src.Services.Interfaces;
+﻿using System.Xml.Linq;
+using FeedCord.Services.Interfaces;
 using HtmlAgilityPack;
 using Microsoft.Extensions.Logging;
 
-namespace FeedCord.src.Infrastructure.Parsers
+namespace FeedCord.Infrastructure.Parsers
 {
     public class ImageParserService : IImageParserService
     {
@@ -20,22 +16,18 @@ namespace FeedCord.src.Infrastructure.Parsers
             _logger = logger;
         }
 
-        public async Task<string> TryExtractImageLink(string pageUrl, string xmlSource)
+        public async Task<string?> TryExtractImageLink(string pageUrl, string xmlSource)
         {
-            // 1) Try to extract an image directly from the feed XML
-            if (!string.IsNullOrWhiteSpace(xmlSource))
-            {
-                var feedImageUrl = ExtractImageFromFeedXml(xmlSource);
-                if (IsValidImageUrl(feedImageUrl))
-                {
-                    // Make sure it's absolute
-                    feedImageUrl = MakeAbsoluteUrl(pageUrl, feedImageUrl);
-                    return feedImageUrl;
-                }
-            }
-
-            // 2) If no valid image found in feed, do the existing fallback to web scraping
-            return await ScrapeImageFromWebpage(pageUrl);
+            if (string.IsNullOrWhiteSpace(xmlSource)) 
+                return await ScrapeImageFromWebpage(pageUrl);
+            
+            var feedImageUrl = ExtractImageFromFeedXml(xmlSource);
+            
+            if (!IsValidImageUrl(feedImageUrl)) 
+                return await ScrapeImageFromWebpage(pageUrl);
+            
+            feedImageUrl = MakeAbsoluteUrl(pageUrl, feedImageUrl);
+            return feedImageUrl;
         }
 
         private static string ExtractImageFromFeedXml(string xmlSource)
@@ -43,33 +35,28 @@ namespace FeedCord.src.Infrastructure.Parsers
             try
             {
                 var xdoc = XDocument.Parse(xmlSource);
-
-                // Try #1: <enclosure url="..." type="image/..." />
+                
                 var enclosureImage = xdoc.Descendants("enclosure")
                     .FirstOrDefault(e => e.Attribute("type") != null &&
-                                         e.Attribute("type").Value.StartsWith("image/", StringComparison.OrdinalIgnoreCase));
+                                         e.Attribute("type")!.Value.StartsWith("image/", StringComparison.OrdinalIgnoreCase));
                 if (enclosureImage != null)
                 {
                     var url = enclosureImage.Attribute("url")?.Value;
                     if (!string.IsNullOrWhiteSpace(url)) return url;
                 }
-
-                // Try #2: <media:content url="..." type="image/..."> or <media:thumbnail url="...">
-                // Note that the media: namespace might need to be accounted for if declared in the feed
-                // For simplicity, we ignore namespaces here using LocalName checks
+                
                 var mediaContent = xdoc.Descendants()
                     .FirstOrDefault(el =>
                         (el.Name.LocalName == "content" || el.Name.LocalName == "thumbnail") &&
                         el.Attributes("url").Any() &&
-                        (el.Attribute("type")?.Value?.StartsWith("image/", StringComparison.OrdinalIgnoreCase) ?? true)
+                        (el.Attribute("type")?.Value.StartsWith("image/", StringComparison.OrdinalIgnoreCase) ?? true)
                     );
                 if (mediaContent != null)
                 {
                     var url = mediaContent.Attribute("url")?.Value;
                     if (!string.IsNullOrWhiteSpace(url)) return url;
                 }
-
-                // Try #3: <itunes:image href="..." />
+                
                 var itunesImage = xdoc.Descendants().FirstOrDefault(el => el.Name.LocalName == "image" &&
                                                                           el.Name.NamespaceName.Contains("itunes") &&
                                                                           el.Attribute("href") != null);
@@ -78,12 +65,10 @@ namespace FeedCord.src.Infrastructure.Parsers
                     var url = itunesImage.Attribute("href")?.Value;
                     if (!string.IsNullOrWhiteSpace(url)) return url;
                 }
-
-                // Try #4: Look for <description> or <content:encoded> that might contain an <img> tag
+                
                 var descNode = xdoc.Descendants("description").FirstOrDefault();
                 var contentNode = xdoc.Descendants().FirstOrDefault(n => n.Name.LocalName == "encoded");
-
-                // Each might contain HTML with an <img> tag
+                
                 var descHtml = descNode?.Value ?? string.Empty;
                 var contentHtml = contentNode?.Value ?? string.Empty;
 
@@ -95,11 +80,8 @@ namespace FeedCord.src.Infrastructure.Parsers
             }
             catch (Exception ex)
             {
-                // Log or handle parse exceptions
                 Console.WriteLine("Failed to parse feed XML. " + ex.Message);
             }
-
-            // Nothing found in feed
             return string.Empty;
         }
 
@@ -109,21 +91,17 @@ namespace FeedCord.src.Infrastructure.Parsers
 
             var doc = new HtmlDocument();
             doc.LoadHtml(html);
-
-            // Just get the first <img src="...">
+            
             var imgNode = doc.DocumentNode.SelectSingleNode("//img[@src]");
-            if (imgNode != null)
-            {
-                var src = imgNode.GetAttributeValue("src", null);
-                if (!string.IsNullOrWhiteSpace(src))
-                {
-                    return src;
-                }
-            }
-            return string.Empty;
+            if (imgNode == null) 
+                return string.Empty;
+            
+            var src = imgNode.GetAttributeValue("src", null);
+            
+            return !string.IsNullOrWhiteSpace(src) ? src : string.Empty;
         }
 
-        private async Task<string> ScrapeImageFromWebpage(string pageUrl)
+        private async Task<string?> ScrapeImageFromWebpage(string pageUrl)
         {
             if (string.IsNullOrWhiteSpace(pageUrl))
                 return string.Empty;
@@ -154,7 +132,7 @@ namespace FeedCord.src.Infrastructure.Parsers
             return string.Empty;
         }
 
-        private static string ExtractImageFromDocument(HtmlDocument doc)
+        private static string? ExtractImageFromDocument(HtmlDocument doc)
         {
             var imageUrl = GetMetaTagContent(doc, "property", "og:image");
             if (IsValidImageUrl(imageUrl))
@@ -187,7 +165,7 @@ namespace FeedCord.src.Infrastructure.Parsers
             return string.Empty;
         }
 
-        private static bool IsValidImageUrl(string url)
+        private static bool IsValidImageUrl(string? url)
         {
             if (string.IsNullOrWhiteSpace(url))
                 return false;
@@ -196,40 +174,37 @@ namespace FeedCord.src.Infrastructure.Parsers
                 url.StartsWith("javascript:", StringComparison.OrdinalIgnoreCase))
                 return false;
 
-            if (Uri.TryCreate(url, UriKind.Absolute, out var parsedUri))
-            {
-                if (parsedUri.Scheme.Equals("file", StringComparison.OrdinalIgnoreCase))
-                    return false;
-            }
-
-            return true;
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var parsedUri)) 
+                return true;
+            
+            return !parsedUri.Scheme.Equals("file", StringComparison.OrdinalIgnoreCase);
         }
 
-        private static string GetMetaTagContent(HtmlDocument doc, string attributeKey, string attributeValue)
+        private static string? GetMetaTagContent(HtmlDocument doc, string attributeKey, string attributeValue)
         {
             var metaNode = doc.DocumentNode.SelectSingleNode($"//meta[@{attributeKey}='{attributeValue}']");
             return metaNode?.GetAttributeValue("content", null);
         }
 
-        private static string GetLinkRel(HtmlDocument doc, string relValue)
+        private static string? GetLinkRel(HtmlDocument doc, string relValue)
         {
             var linkNode = doc.DocumentNode.SelectSingleNode($"//link[@rel='{relValue}']");
             return linkNode?.GetAttributeValue("href", null);
         }
 
-        private static string GetFirstImg(HtmlDocument doc)
+        private static string? GetFirstImg(HtmlDocument doc)
         {
             var imgNode = doc.DocumentNode.SelectSingleNode("//img[@src]");
             return imgNode?.GetAttributeValue("src", null);
         }
 
-        private static string GetFirstImageWithAttribute(HtmlDocument doc, string attributeName)
+        private static string? GetFirstImageWithAttribute(HtmlDocument doc, string attributeName)
         {
             var imgNode = doc.DocumentNode.SelectSingleNode($"//img[@{attributeName}]");
             return imgNode?.GetAttributeValue(attributeName, null);
         }
 
-        private static string GetElementById(HtmlDocument doc, string elementId)
+        private static string? GetElementById(HtmlDocument doc, string elementId)
         {
             var node = doc.GetElementbyId(elementId);
             if (node != null)
@@ -242,7 +217,7 @@ namespace FeedCord.src.Infrastructure.Parsers
             }
             return null;
         }
-        private static string MakeAbsoluteUrl(string pageUrl, string foundUrl)
+        private static string? MakeAbsoluteUrl(string pageUrl, string? foundUrl)
         {
             if (Uri.TryCreate(foundUrl, UriKind.Absolute, out var absolute))
             {

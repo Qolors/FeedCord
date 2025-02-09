@@ -1,10 +1,10 @@
-﻿using FeedCord.src.Common;
-using FeedCord.src.Infrastructure.Workers;
-using FeedCord.src.Services.Interfaces;
+﻿using FeedCord.Common;
+using FeedCord.Infrastructure.Workers;
+using FeedCord.Services.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace FeedCord.src.Infrastructure.Factories
+namespace FeedCord.Infrastructure.Factories
 {
     public class FeedWorkerFactory : IFeedWorkerFactory
     {

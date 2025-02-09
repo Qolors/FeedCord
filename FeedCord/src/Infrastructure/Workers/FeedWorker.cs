@@ -1,21 +1,20 @@
-﻿using FeedCord.src.Common;
-using FeedCord.src.Services;
-using FeedCord.src.Services.Interfaces;
+﻿using FeedCord.Common;
+using FeedCord.Services.Interfaces;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace FeedCord.src.Infrastructure.Workers
+namespace FeedCord.Infrastructure.Workers
 {
     public class FeedWorker : BackgroundService
     {
-        private readonly IHostApplicationLifetime lifetime;
-        private readonly ILogger<FeedWorker> logger;
-        private readonly IFeedManager feedManager;
-        private readonly INotifier notifier;
+        private readonly IHostApplicationLifetime _lifetime;
+        private readonly ILogger<FeedWorker> _logger;
+        private readonly IFeedManager _feedManager;
+        private readonly INotifier _notifier;
 
-        private readonly int delayTime;
-        private bool isInitialized = false;
-        private readonly string id;
+        private readonly int _delayTime;
+        private bool _isInitialized;
+        private readonly string _id;
 
         public FeedWorker(
             IHostApplicationLifetime lifetime,
@@ -24,55 +23,56 @@ namespace FeedCord.src.Infrastructure.Workers
             INotifier notifier,
             Config config)
         {
-            this.lifetime = lifetime;
-            this.logger = logger;
-            this.feedManager = feedManager;
-            this.notifier = notifier;
-            delayTime = config.RssCheckIntervalMinutes;
-            id = config.Id;
+            _lifetime = lifetime;
+            _logger = logger;
+            _feedManager = feedManager;
+            _notifier = notifier;
+            _delayTime = config.RssCheckIntervalMinutes;
+            _id = config.Id;
+            _isInitialized = false;
 
             logger.LogInformation("{id} Created with check interval {Interval} minutes",
-                id, config.RssCheckIntervalMinutes);
+                _id, config.RssCheckIntervalMinutes);
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
 
-            lifetime.ApplicationStopping.Register(OnShutdown);
+            _lifetime.ApplicationStopping.Register(OnShutdown);
 
             while (!stoppingToken.IsCancellationRequested)
             {
-                logger.LogInformation("{id} Starting Background Processing at {CurrentTime}..", id, DateTime.Now);
+                _logger.LogInformation("{id} Starting Background Processing at {CurrentTime}..", _id, DateTime.Now);
 
                 await RunRoutineBackgroundProcessAsync();
 
-                logger.LogInformation("{id} Finished Background Processing at {CurrentTime}..", id, DateTime.Now);
+                _logger.LogInformation("{id} Finished Background Processing at {CurrentTime}..", _id, DateTime.Now);
 
-                await Task.Delay(TimeSpan.FromMinutes(delayTime), stoppingToken);
+                await Task.Delay(TimeSpan.FromMinutes(_delayTime), stoppingToken);
             }
         }
 
         private async Task RunRoutineBackgroundProcessAsync()
         {
-            if (!isInitialized)
+            if (!_isInitialized)
             {
-                logger.LogInformation("{id}: Initializing Url Checks..", id);
-                await feedManager.InitializeUrlsAsync();
-                isInitialized = true;
+                _logger.LogInformation("{id}: Initializing Url Checks..", _id);
+                await _feedManager.InitializeUrlsAsync();
+                _isInitialized = true;
             }
 
-            var posts = await feedManager.CheckForNewPostsAsync();
+            var posts = await _feedManager.CheckForNewPostsAsync();
 
             if (posts.Count > 0)
             {
-                logger.LogInformation("{id}: Found {PostCount} new posts..", id, posts.Count);
-                await notifier.SendNotificationsAsync(posts);
+                _logger.LogInformation("{id}: Found {PostCount} new posts..", _id, posts.Count);
+                await _notifier.SendNotificationsAsync(posts);
             }
         }
 
         private void OnShutdown()
         {
-            var data = feedManager.GetAllFeedData();
+            var data = _feedManager.GetAllFeedData();
             SaveDataToCsv(data);
         }
 

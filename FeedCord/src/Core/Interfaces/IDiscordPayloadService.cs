@@ -1,6 +1,6 @@
-﻿using FeedCord.src.Common;
+﻿using FeedCord.Common;
 
-namespace FeedCord.src.Core.Interfaces
+namespace FeedCord.Core.Interfaces
 {
     public interface IDiscordPayloadService
     {

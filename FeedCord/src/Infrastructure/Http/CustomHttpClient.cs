@@ -1,10 +1,10 @@
 ﻿using System.Net;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
-using FeedCord.src.Services.Interfaces;
+using FeedCord.Services.Interfaces;
 using System.Collections.Concurrent;
 
-namespace FeedCord.src.Infrastructure.Http
+namespace FeedCord.Infrastructure.Http
 {
     public class CustomHttpClient : ICustomHttpClient
     {
@@ -13,33 +13,32 @@ namespace FeedCord.src.Infrastructure.Http
         private const string GOOGLE_FEED_FETCHER = "FeedFetcher-Google";
 
         private readonly HttpClient _innerClient;
-        private readonly ILogger<CustomHttpClient> logger;
-        private readonly SemaphoreSlim throttle;
-        private ConcurrentDictionary<string, string> userAgentCache;
+        private readonly ILogger<CustomHttpClient> _logger;
+        private readonly SemaphoreSlim _throttle;
+        private readonly ConcurrentDictionary<string, string> _userAgentCache;
         public CustomHttpClient(ILogger<CustomHttpClient> logger, HttpClient innerClient, SemaphoreSlim throttle)
         {
-            this.logger = logger;
-            this.throttle = throttle;
+            _logger = logger;
+            _throttle = throttle;
             _innerClient = innerClient;
-            userAgentCache = new();
+            _userAgentCache = new ConcurrentDictionary<string, string>();
         }
 
         public async Task<HttpResponseMessage> GetAsyncWithFallback(string url)
         {
-            await throttle.WaitAsync();
+            await _throttle.WaitAsync();
 
-            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, url);
+            var request = new HttpRequestMessage(HttpMethod.Get, url);
 
-            if (userAgentCache.ContainsKey(url))
+            if (_userAgentCache.ContainsKey(url))
             {
                 request.Headers.UserAgent
-                    .ParseAdd(userAgentCache
-                    .TryGetValue(url, out string? userAgent) ? userAgent : "");
+                    .ParseAdd(_userAgentCache.GetValueOrDefault(url, ""));
             }
 
             var response = await _innerClient.SendAsync(request);
 
-            throttle.Release();
+            _throttle.Release();
 
             if (!response.IsSuccessStatusCode)
             {
@@ -51,94 +50,92 @@ namespace FeedCord.src.Infrastructure.Http
 
         public async Task PostAsyncWithFallback(string url, StringContent forumChannelContent, StringContent textChannelContent, bool isForum)
         {
-            await throttle.WaitAsync();
+            await _throttle.WaitAsync();
 
             var response = await _innerClient.PostAsync(url, isForum ? forumChannelContent : textChannelContent);
 
             if (response.StatusCode == HttpStatusCode.NoContent)
             {
-                logger.LogInformation("[{CurrentTime}]: Response - Successful: Posted new content to Discord Channel at {CurrentTime}", DateTime.Now, DateTime.Now);
+                _logger.LogInformation("[{CurrentTime}]: Response - Successful: Posted new content to Discord Channel at {CurrentTime}", DateTime.Now, DateTime.Now);
             }
             else
             {
-                string channelType = isForum ? "Forum" : "Text";
+                await _throttle.WaitAsync();
 
-                await throttle.WaitAsync();
-
-                logger.LogError("Response Error: {ResponseError}", response.Content.ReadAsStringAsync().Result);
+                _logger.LogError("Response Error: {ResponseError}", response.Content.ReadAsStringAsync().Result);
 
                 response = await _innerClient.PostAsync(url, !isForum ? forumChannelContent : textChannelContent);
 
                 if (response.StatusCode == HttpStatusCode.NoContent)
                 {
-                    logger.LogWarning("Successfully posted to Discord Channel after switching channel type - Change Forum Property in Config!!");
+                    _logger.LogWarning("Successfully posted to Discord Channel after switching channel type - Change Forum Property in Config!!");
                 }
                 else
                 {
-                    logger.LogError("Failed to post to Discord Channel after fallback attempts: {Url}", url);
-                    
+                    _logger.LogError("Failed to post to Discord Channel after fallback attempts: {Url}", url);
+
                 }
             }
 
-            throttle.Release();
+            _throttle.Release();
         }
 
         private async Task<HttpResponseMessage> TryAlternativeAsync(string url, HttpResponseMessage oldResponse)
         {
-            Uri uri = new Uri(url);
-            string baseUrl = uri.GetLeftPart(UriPartial.Authority);
+            var uri = new Uri(url);
+            var baseUrl = uri.GetLeftPart(UriPartial.Authority);
 
             //USER MIMICK
-            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, url);
+            var request = new HttpRequestMessage(HttpMethod.Get, url);
             request.Headers.UserAgent.ParseAdd(USER_MIMICK);
-            
-            await throttle.WaitAsync();
-            HttpResponseMessage response = await _innerClient.SendAsync(request);
 
+            await _throttle.WaitAsync();
 
+            var response = await _innerClient.SendAsync(request);
             if (response.IsSuccessStatusCode)
             {
-                userAgentCache.AddOrUpdate(url, USER_MIMICK, (key, oldValue) => USER_MIMICK);
-                throttle.Release();
+                _userAgentCache.AddOrUpdate(url, USER_MIMICK, (_, _) => USER_MIMICK);
+                _throttle.Release();
                 return response;
             }
 
             //GOOGLE FEED FETCHER
             request = new HttpRequestMessage(HttpMethod.Get, url);
             request.Headers.UserAgent.ParseAdd(GOOGLE_FEED_FETCHER);
-            await throttle.WaitAsync();
+            await _throttle.WaitAsync();
             response = await _innerClient.SendAsync(request);
 
             if (response.IsSuccessStatusCode)
             {
-                userAgentCache.AddOrUpdate(url, GOOGLE_FEED_FETCHER, (key, oldValue) => GOOGLE_FEED_FETCHER);
-                throttle.Release();
+                _userAgentCache.AddOrUpdate(url, GOOGLE_FEED_FETCHER, (_, _) => GOOGLE_FEED_FETCHER);
+                _throttle.Release();
                 return response;
             }
 
             //USERAGENT SCRAPE
-            string robotsUrl = new Uri(new Uri(baseUrl), "/robots.txt").AbsoluteUri;
-            List<string> userAgents = await GetRobotsUserAgentsAsync(robotsUrl);
-            if (userAgents != null && userAgents.Count > 0)
+            var robotsUrl = new Uri(new Uri(baseUrl), "/robots.txt").AbsoluteUri;
+            var userAgents = await GetRobotsUserAgentsAsync(robotsUrl);
+            
+            if (userAgents.Count > 0)
             {
                 foreach (var userAgent in userAgents)
                 {
                     request = new HttpRequestMessage(HttpMethod.Get, url);
                     request.Headers.UserAgent.ParseAdd(userAgent);
                     request.Headers.Add("Accept", "*/*");
-                    await throttle.WaitAsync();
+                    await _throttle.WaitAsync();
                     response = await _innerClient.SendAsync(request);
                     if (response.IsSuccessStatusCode)
                     {
-                        userAgentCache.AddOrUpdate(url, userAgent, (key, oldValue) => userAgent);
-                        throttle.Release();
+                        _userAgentCache.AddOrUpdate(url, userAgent, (_, _) => userAgent);
+                        _throttle.Release();
                         return response;
                     }
                 }
             }
 
-            logger.LogError("Failed to fetch RSS Feed after fallback attempts: {Url}", url);
-            throttle.Release();
+            _logger.LogError("Failed to fetch RSS Feed after fallback attempts: {Url}", url);
+            _throttle.Release();
             return oldResponse;
         }
 
@@ -146,7 +143,7 @@ namespace FeedCord.src.Infrastructure.Http
         {
             try
             {
-                await throttle.WaitAsync();
+                await _throttle.WaitAsync();
                 return await _innerClient.GetStringAsync(url);
             }
             catch
@@ -155,30 +152,30 @@ namespace FeedCord.src.Infrastructure.Http
             }
             finally
             {
-                throttle.Release();
+                _throttle.Release();
             }
         }
 
         private async Task<List<string>> GetRobotsUserAgentsAsync(string url)
         {
-            List<string> userAgents = new List<string>();
+            var userAgents = new List<string>();
 
-            string robotsContent = await FetchRobotsContentAsync(url);
+            var robotsContent = await FetchRobotsContentAsync(url);
 
-            if (robotsContent != string.Empty)
+            if (robotsContent == string.Empty) 
+                return userAgents.OrderByDescending(x => x).Distinct().ToList();
+            
+            var pattern = @"User-agent:\s*(?<agent>.+)";
+            var regex = new Regex(pattern);
+
+            var matches = regex.Matches(robotsContent);
+
+            foreach (Match match in matches)
             {
-                string pattern = @"User-agent:\s*(?<agent>.+)";
-                Regex regex = new Regex(pattern);
-
-                MatchCollection matches = regex.Matches(robotsContent);
-
-                foreach (Match match in matches)
+                var userAgent = match.Groups["agent"].Value.Trim();
+                if (!string.IsNullOrEmpty(userAgent))
                 {
-                    string userAgent = match.Groups["agent"].Value.Trim();
-                    if (!string.IsNullOrEmpty(userAgent))
-                    {
-                        userAgents.Add(userAgent);
-                    }
+                    userAgents.Add(userAgent);
                 }
             }
 

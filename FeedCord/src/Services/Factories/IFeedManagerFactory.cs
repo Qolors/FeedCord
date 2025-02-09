@@ -1,7 +1,7 @@
-﻿using FeedCord.src.Common;
-using FeedCord.src.Services.Interfaces;
+﻿using FeedCord.Common;
+using FeedCord.Services.Interfaces;
 
-namespace FeedCord.src.Services.Factories
+namespace FeedCord.Services.Factories
 {
     public interface IFeedManagerFactory
     {

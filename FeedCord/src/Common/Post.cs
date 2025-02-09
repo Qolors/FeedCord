@@ -1,4 +1,4 @@
-﻿namespace FeedCord.src.Common
+﻿namespace FeedCord.Common
 {
     public record Post(
         string Title,

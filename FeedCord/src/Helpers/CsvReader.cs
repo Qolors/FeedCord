@@ -1,7 +1,7 @@
-﻿using FeedCord.src.Common;
+﻿using FeedCord.Common;
 using System.Globalization;
 
-namespace FeedCord.src.Helpers
+namespace FeedCord.Helpers
 {
     public static class CsvReader
     {
@@ -48,7 +48,7 @@ namespace FeedCord.src.Helpers
                     };
                 }
             }
-            catch (Exception ex)
+            catch
             {
                 return dictionary;
             }

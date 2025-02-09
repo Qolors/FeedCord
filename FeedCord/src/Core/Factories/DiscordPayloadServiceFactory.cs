@@ -1,8 +1,8 @@
-﻿using FeedCord.src.Common;
-using FeedCord.src.Core.Interfaces;
+﻿using FeedCord.Common;
+using FeedCord.Core.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace FeedCord.src.Core.Factories
+namespace FeedCord.Core.Factories
 {
     public class DiscordPayloadServiceFactory : IDiscordPayloadServiceFactory
     {

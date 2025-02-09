@@ -1,8 +1,8 @@
-﻿using FeedCord.src.Common;
-using FeedCord.src.Core.Interfaces;
-using FeedCord.src.Services.Interfaces;
+﻿using FeedCord.Common;
+using FeedCord.Core.Interfaces;
+using FeedCord.Services.Interfaces;
 
-namespace FeedCord.src.Infrastructure.Factories
+namespace FeedCord.Infrastructure.Factories
 {
     public interface INotifierFactory
     {

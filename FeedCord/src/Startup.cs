@@ -1,14 +1,14 @@
-﻿using FeedCord.src.Common;
-using FeedCord.src.Helpers;
-using FeedCord.src.Core;
-using FeedCord.src.Services;
-using FeedCord.src.Core.Interfaces;
-using FeedCord.src.Core.Factories;
-using FeedCord.src.Infrastructure.Http;
-using FeedCord.src.Services.Factories;
-using FeedCord.src.Infrastructure.Factories;
-using FeedCord.src.Services.Interfaces;
-using FeedCord.src.Infrastructure.Parsers;
+﻿using FeedCord.Common;
+using FeedCord.Helpers;
+using FeedCord.Core;
+using FeedCord.Services;
+using FeedCord.Core.Interfaces;
+using FeedCord.Core.Factories;
+using FeedCord.Infrastructure.Http;
+using FeedCord.Services.Factories;
+using FeedCord.Infrastructure.Factories;
+using FeedCord.Services.Interfaces;
+using FeedCord.Infrastructure.Parsers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -16,7 +16,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
 using System.ComponentModel.DataAnnotations;
 
-namespace FeedCord.src
+namespace FeedCord
 {
     public class Startup
     {
@@ -60,7 +60,7 @@ namespace FeedCord.src
                 httpClient.Timeout = TimeSpan.FromSeconds(5);
             });
 
-            int concurrentRequests = ctx.Configuration.GetValue<int>("ConcurrentRequests", 20);
+            var concurrentRequests = ctx.Configuration.GetValue("ConcurrentRequests", 20);
 
             if (concurrentRequests != 20)
             {
@@ -120,11 +120,11 @@ namespace FeedCord.src
             var context = new ValidationContext(config, serviceProvider: null, items: null);
             var results = new List<ValidationResult>();
 
-            if (!Validator.TryValidateObject(config, context, results, validateAllProperties: true))
-            {
-                var errors = string.Join("\n", results.Select(r => r.ErrorMessage));
-                throw new InvalidOperationException($"Invalid config entry: {errors}");
-            }
+            if (Validator.TryValidateObject(config, context, results, validateAllProperties: true)) 
+                return;
+            
+            var errors = string.Join("\n", results.Select(r => r.ErrorMessage));
+            throw new InvalidOperationException($"Invalid config entry: {errors}");
         }
     }
 }

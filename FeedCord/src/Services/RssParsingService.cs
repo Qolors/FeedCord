@@ -1,30 +1,30 @@
 using Microsoft.Extensions.Logging;
 using CodeHollow.FeedReader;
-using FeedCord.src.Common;
-using FeedCord.src.Services.Helpers;
-using FeedCord.src.Services.Interfaces;
+using FeedCord.Common;
+using FeedCord.Services.Helpers;
+using FeedCord.Services.Interfaces;
 
-namespace FeedCord.src.Services
+namespace FeedCord.Services
 {
     public class RssParsingService : IRssParsingService
     {
-        private readonly ILogger<RssParsingService> logger;
-        private readonly IYoutubeParsingService youtubeParsingService;
-        private readonly IImageParserService imageParserService;
+        private readonly ILogger<RssParsingService> _logger;
+        private readonly IYoutubeParsingService _youtubeParsingService;
+        private readonly IImageParserService _imageParserService;
 
         public RssParsingService(
-            ILogger<RssParsingService> logger,  
+            ILogger<RssParsingService> logger,
             IYoutubeParsingService youtubeParsingService,
             IImageParserService imageParserService)
         {
-            this.logger = logger;
-            this.youtubeParsingService = youtubeParsingService;
-            this.imageParserService = imageParserService;
+            _logger = logger;
+            _youtubeParsingService = youtubeParsingService;
+            _imageParserService = imageParserService;
         }
 
         public async Task<List<Post?>> ParseRssFeedAsync(string xmlContent, int trim)
         {
-            string xmlContenter = xmlContent.Replace("<!doctype", "<!DOCTYPE");
+            var xmlContenter = xmlContent.Replace("<!doctype", "<!DOCTYPE");
 
             try
             {
@@ -41,17 +41,14 @@ namespace FeedCord.src.Services
 
                 foreach (var post in feedItems)
                 {
-                    string rawXml = GetRawXmlForItem(post);
+                    var rawXml = GetRawXmlForItem(post);
 
-                    string imageLink = await imageParserService
+                    var imageLink = await _imageParserService
                         .TryExtractImageLink(post.Link, rawXml) ?? feed.ImageUrl;
 
-                    var builtPost = await PostBuilder.TryBuildPost(post, feed, trim, imageLink);
+                    var builtPost = PostBuilder.TryBuildPost(post, feed, trim, imageLink);
 
-                    if (builtPost is not null)
-                    {
-                        posts.Add(builtPost);
-                    }
+                    posts.Add(builtPost);
                 }
 
                 return posts;
@@ -59,14 +56,14 @@ namespace FeedCord.src.Services
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "An unexpected error occurred while parsing the RSS feed");
-                return null;
+                _logger.LogWarning(ex, "An unexpected error occurred while parsing the RSS feed");
+                return new List<Post?>();
             }
         }
 
         public async Task<Post?> ParseYoutubeFeedAsync(string channelUrl)
         {
-            return await youtubeParsingService.GetXmlUrlAndFeed(channelUrl);
+            return await _youtubeParsingService.GetXmlUrlAndFeed(channelUrl);
         }
 
         private string GetRawXmlForItem(FeedItem feedItem)

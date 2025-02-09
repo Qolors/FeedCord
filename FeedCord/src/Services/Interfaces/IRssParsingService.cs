@@ -1,6 +1,6 @@
-﻿using FeedCord.src.Common;
+﻿using FeedCord.Common;
 
-namespace FeedCord.src.Services.Interfaces
+namespace FeedCord.Services.Interfaces
 {
     public interface IRssParsingService
     {

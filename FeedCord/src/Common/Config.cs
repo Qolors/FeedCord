@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace FeedCord.src.Common
+namespace FeedCord.Common
 {
     public class Config
     {
@@ -27,7 +27,7 @@ namespace FeedCord.src.Common
         public string? FooterImage { get; set; }
         public int Color { get; set; }
 
-        
+
 
         public bool EnableAutoRemove { get; set; }
 

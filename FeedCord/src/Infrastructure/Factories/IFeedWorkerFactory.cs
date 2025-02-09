@@ -1,8 +1,8 @@
-﻿using FeedCord.src.Common;
-using FeedCord.src.Infrastructure.Workers;
-using FeedCord.src.Services.Interfaces;
+﻿using FeedCord.Common;
+using FeedCord.Infrastructure.Workers;
+using FeedCord.Services.Interfaces;
 
-namespace FeedCord.src.Infrastructure.Factories
+namespace FeedCord.Infrastructure.Factories
 {
     public interface IFeedWorkerFactory
     {

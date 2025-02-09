@@ -1,8 +1,8 @@
-﻿using FeedCord.src.Common;
-using FeedCord.src.Services.Interfaces;
+﻿using FeedCord.Common;
+using FeedCord.Services.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace FeedCord.src.Services.Factories
+namespace FeedCord.Services.Factories
 {
     public class FeedManagerFactory : IFeedManagerFactory
     {

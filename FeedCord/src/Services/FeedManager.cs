@@ -1,21 +1,21 @@
-﻿using FeedCord.src.Common;
-using FeedCord.src.Helpers;
-using FeedCord.src.Services.Interfaces;
+﻿using FeedCord.Common;
+using FeedCord.Helpers;
+using FeedCord.Services.Interfaces;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.IO.Compression;
 using System.Text;
 
-namespace FeedCord.src.Services
+namespace FeedCord.Services
 {
     public class FeedManager : IFeedManager
     {
-        private readonly Config config;
-        private readonly ICustomHttpClient httpClient;
-        private readonly ILogger<FeedManager> logger;
-        private readonly IRssParsingService rssParsingService;
-        private readonly Dictionary<string, ReferencePost> lastRunReference = new();
-        private readonly ConcurrentDictionary<string, FeedState> _feedStates = new();
+        private readonly Config _config;
+        private readonly ICustomHttpClient _httpClient;
+        private readonly ILogger<FeedManager> _logger;
+        private readonly IRssParsingService _rssParsingService;
+        private readonly Dictionary<string, ReferencePost> _lastRunReference;
+        private readonly ConcurrentDictionary<string, FeedState> _feedStates;
 
         public FeedManager(
             Config config,
@@ -23,17 +23,19 @@ namespace FeedCord.src.Services
             IRssParsingService rssParsingService,
             ILogger<FeedManager> logger)
         {
-            this.config = config;
-            this.httpClient = httpClient;
-            this.lastRunReference = CsvReader.LoadReferencePosts("feed_dump.csv");
-            this.rssParsingService = rssParsingService;
-            this.logger = logger;
+            _config = config;
+            _httpClient = httpClient;
+            _lastRunReference = CsvReader.LoadReferencePosts("feed_dump.csv");
+            _rssParsingService = rssParsingService;
+            _logger = logger;
+            _feedStates = new ConcurrentDictionary<string, FeedState>();
         }
         public async Task<List<Post>> CheckForNewPostsAsync()
         {
             ConcurrentBag<Post> allNewPosts = new();
 
-            var tasks = _feedStates.Select(async (feed) => await CheckSingleFeedAsync(feed.Key, feed.Value, allNewPosts, config.DescriptionLimit));
+            var tasks = _feedStates.Select(async (feed) => 
+                await CheckSingleFeedAsync(feed.Key, feed.Value, allNewPosts, _config.DescriptionLimit));
 
             await Task.WhenAll(tasks);
 
@@ -41,24 +43,24 @@ namespace FeedCord.src.Services
         }
         public async Task InitializeUrlsAsync()
         {
-            int totalUrls = 0;
-            int rssCount = await GetSuccessCount(config.RssUrls, false);
-            int youtubeCount = await GetSuccessCount(config.YoutubeUrls, true);
-            int successCount = 0;
-            string id = config.Id;
+            var totalUrls = 0;
+            var rssCount = await GetSuccessCount(_config.RssUrls, false);
+            var youtubeCount = await GetSuccessCount(_config.YoutubeUrls, true);
+            var successCount = 0;
+            var id = _config.Id;
 
-            if (config.YoutubeUrls is null || config.YoutubeUrls.Length == 1 && string.IsNullOrEmpty(config.YoutubeUrls[0]))
+            if (_config.YoutubeUrls.Length == 1 && string.IsNullOrEmpty(_config.YoutubeUrls[0]))
             {
-                totalUrls = config.RssUrls.Length;
+                totalUrls = _config.RssUrls.Length;
             }
             else
             {
-                totalUrls = config.RssUrls.Length + config.YoutubeUrls.Length;
+                totalUrls = _config.RssUrls.Length + _config.YoutubeUrls.Length;
             }
 
             successCount = rssCount + youtubeCount;
 
-            logger.LogInformation("{id}: Tested successfully for {UrlCount} out of {TotalUrls} Urls in Configuration File", id, successCount, totalUrls);
+            _logger.LogInformation("{id}: Tested successfully for {UrlCount} out of {TotalUrls} Urls in Configuration File", id, successCount, totalUrls);
         }
 
         public IReadOnlyDictionary<string, FeedState> GetAllFeedData()
@@ -67,69 +69,65 @@ namespace FeedCord.src.Services
         }
         private async Task<int> GetSuccessCount(string[] urls, bool isYoutube)
         {
-            int successCount = 0;
+            var successCount = 0;
 
             if (urls.Length == 0 || urls.Length == 1 && string.IsNullOrEmpty(urls[0]))
             {
-                string type = isYoutube ? "Youtube" : "RSS";
                 return successCount;
             }
 
             foreach (var url in urls)
             {
-
                 var isSuccess = await TestUrlAsync(url);
 
-                if (isSuccess)
+                if (!isSuccess) continue;
+                
+                if (_lastRunReference.TryGetValue(url, out var value))
                 {
-
-                    if (lastRunReference.TryGetValue(url, out ReferencePost? value))
+                    _feedStates.TryAdd(url, new FeedState
                     {
-                        _feedStates.TryAdd(url, new FeedState
-                        {
-                            IsYoutube = isYoutube,
-                            LastPublishDate = value.LastRunDate,
-                            ErrorCount = 0
-                        });
+                        IsYoutube = isYoutube,
+                        LastPublishDate = value.LastRunDate,
+                        ErrorCount = 0
+                    });
 
-                        logger.LogInformation("Successfully initialized Existing URL: {Url}", url);
+                    _logger.LogInformation("Successfully initialized Existing URL: {Url}", url);
 
-                        successCount++;
+                    successCount++;
 
-                        continue;
-                    }
+                    continue;
+                }
 
-                    bool successfulAdd = false;
+                bool successfulAdd;
 
-                    if (isYoutube)
+                if (isYoutube)
+                {
+                    successfulAdd = _feedStates.TryAdd(url, new FeedState
                     {
-                        successfulAdd = _feedStates.TryAdd(url, new FeedState
-                        {
-                            IsYoutube = true,
-                            LastPublishDate = DateTime.Now,
-                            ErrorCount = 0
-                        });
-                    }
-                    else
+                        IsYoutube = true,
+                        LastPublishDate = DateTime.Now,
+                        ErrorCount = 0
+                    });
+                }
+                else
+                {
+                    successfulAdd = _feedStates.TryAdd(url, new FeedState
                     {
-                        successfulAdd = _feedStates.TryAdd(url, new FeedState
-                        {
-                            IsYoutube = false,
-                            LastPublishDate = DateTime.Now,
-                            ErrorCount = 0
-                        });
-                    }
+                        IsYoutube = false,
+                        LastPublishDate = DateTime.Now,
+                        ErrorCount = 0
+                    });
+                }
 
-                    if (successfulAdd)
-                    {
-                        successCount++;
-                        logger.LogInformation("Successfully initialized URL: {Url}", url);
-                    }
+                if (successfulAdd)
+                {
+                    successCount++;
+                    _logger.LogInformation("Successfully initialized URL: {Url}", url);
+                }
 
-                    else
-                    {
-                        logger.LogWarning("Failed to initialize URL: {Url}", url);
-                    }
+                else
+                {
+                    _logger.LogWarning("Failed to initialize URL: {Url}", url);
                 }
             }
 
@@ -139,8 +137,8 @@ namespace FeedCord.src.Services
         {
             try
             {
-                var response = await httpClient.GetAsyncWithFallback(url);
-                logger.LogInformation($"Status Code: {(int)response.StatusCode} {response.StatusCode}");
+                var response = await _httpClient.GetAsyncWithFallback(url);
+                _logger.LogInformation($"Status Code: {(int)response.StatusCode} {response.StatusCode}");
 
                 response.EnsureSuccessStatusCode();
                 return true;
@@ -152,13 +150,13 @@ namespace FeedCord.src.Services
         }
         private async Task CheckSingleFeedAsync(string url, FeedState feedState, ConcurrentBag<Post> newPosts, int trim)
         {
-            logger.LogInformation("Checking if any new posts for {Url}...", url);
+            _logger.LogInformation("Checking if any new posts for {Url}...", url);
 
             List<Post?> posts;
             try
             {
                 posts = feedState.IsYoutube ?
-                    await FetchYoutubeAsync(url, trim) :
+                    await FetchYoutubeAsync(url) :
                     await FetchRssAsync(url, trim);
             }
             catch (Exception ex)
@@ -178,37 +176,39 @@ namespace FeedCord.src.Services
                 {
                     if (post is null)
                     {
-                        logger.LogWarning("Failed to parse a post from {Url}", url);
+                        _logger.LogWarning("Failed to parse a post from {Url}", url);
                         continue;
                     }
                     newPosts.Add(post);
                 }
             }
         }
-        private async Task<List<Post?>> FetchYoutubeAsync(string url, int trim)
+        private async Task<List<Post?>> FetchYoutubeAsync(string url)
         {
             try
             {
-                var response = await httpClient.GetAsyncWithFallback(url);
+                var response = await _httpClient.GetAsyncWithFallback(url);
 
                 response.EnsureSuccessStatusCode();
 
-                string xmlContent = await GetResponseContentAsync(response);
+                var xmlContent = await GetResponseContentAsync(response);
 
-                var post = await rssParsingService.ParseYoutubeFeedAsync(xmlContent);
+                var post = await _rssParsingService.ParseYoutubeFeedAsync(xmlContent);
 
-                return post == null ? new List<Post?>() : new List<Post?> { post };
+                return post == null ? 
+                    new List<Post?>() : 
+                    new List<Post?> { post };
 
             }
             catch (HttpRequestException ex)
             {
-                logger.LogWarning("Failed to fetch or process the RSS feed from {Url}: Response Ended Prematurely - Skipping Url", url);
-                return null;
+                _logger.LogWarning("Failed to fetch or process the RSS feed from {Url}: Response Ended Prematurely - Skipping Url", url);
+                return new List<Post?>();
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "An unexpected error occurred while checking the RSS feed from {Url}", url);
-                return null;
+                _logger.LogWarning(ex, "An unexpected error occurred while checking the RSS feed from {Url}", url);
+                return new List<Post?>();
             }
         }
 
@@ -216,31 +216,31 @@ namespace FeedCord.src.Services
         {
             try
             {
-                var response = await httpClient.GetAsyncWithFallback(url);
+                var response = await _httpClient.GetAsyncWithFallback(url);
 
                 response.EnsureSuccessStatusCode();
 
-                string xmlContent = await GetResponseContentAsync(response);
+                var xmlContent = await GetResponseContentAsync(response);
 
-                return await rssParsingService.ParseRssFeedAsync(xmlContent, trim);
+                return await _rssParsingService.ParseRssFeedAsync(xmlContent, trim);
 
             }
             catch (HttpRequestException ex)
             {
-                logger.LogWarning("Failed to fetch or process the RSS feed from {Url}: Response Ended Prematurely - Skipping Url", url);
-                return null;
+                _logger.LogWarning("Failed to fetch or process the RSS feed from {Url}: Response Ended Prematurely - Skipping Url", url);
+                return new List<Post?>();
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "An unexpected error occurred while checking the RSS feed from {Url}", url);
-                return null;
+                _logger.LogWarning(ex, "An unexpected error occurred while checking the RSS feed from {Url}", url);
+                return new List<Post?>();
             }
         }
         private async Task<string> GetResponseContentAsync(HttpResponseMessage response)
         {
             if (response.Content.Headers.ContentEncoding.Contains("gzip"))
             {
-                using var decompressedStream = new GZipStream(await response.Content.ReadAsStreamAsync(), CompressionMode.Decompress);
+                await using var decompressedStream = new GZipStream(await response.Content.ReadAsStreamAsync(), CompressionMode.Decompress);
                 using var reader = new StreamReader(decompressedStream, Encoding.UTF8);
                 return await reader.ReadToEndAsync();
             }
@@ -252,18 +252,17 @@ namespace FeedCord.src.Services
 
         private void HandleFeedError(string url, FeedState feedState, Exception ex)
         {
-            logger.LogWarning(ex, "Failed to fetch or parse feed {Url}", url);
+            _logger.LogWarning(ex, "Failed to fetch or parse feed {Url}", url);
             feedState.ErrorCount++;
 
-            if (feedState.ErrorCount >= 3 && config.EnableAutoRemove)
-            {
-                logger.LogWarning("Removing Url: {Url} after too many errors", url);
-                bool successRemove = _feedStates.TryRemove(url, out _);
+            if (feedState.ErrorCount < 3 || !_config.EnableAutoRemove) return;
+            
+            _logger.LogWarning("Removing Url: {Url} after too many errors", url);
+            var successRemove = _feedStates.TryRemove(url, out _);
 
-                if (!successRemove)
-                {
-                    logger.LogWarning("Failed to remove Url: {Url}", url);
-                }
+            if (!successRemove)
+            {
+                _logger.LogWarning("Failed to remove Url: {Url}", url);
             }
         }
 

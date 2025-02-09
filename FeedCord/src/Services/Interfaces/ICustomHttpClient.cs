@@ -1,6 +1,6 @@
 ﻿
 
-namespace FeedCord.src.Services.Interfaces
+namespace FeedCord.Services.Interfaces
 {
     public interface ICustomHttpClient
     {

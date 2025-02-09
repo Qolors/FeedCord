@@ -1,9 +1,9 @@
-﻿using FeedCord.src.Common;
-using FeedCord.src.Core.Interfaces;
+﻿using FeedCord.Common;
+using FeedCord.Core.Interfaces;
 using System.Text;
 using System.Text.Json;
 
-namespace FeedCord.src.Core
+namespace FeedCord.Core
 {
     public class DiscordPayloadService : IDiscordPayloadService
     {
@@ -68,7 +68,7 @@ namespace FeedCord.src.Core
                         title = post.Title,
                         author = new
                         {
-                            name = post.Author ?? _config.AuthorName ?? "",
+                            name = post.Author,
                             url = _config.AuthorUrl ?? "",
                             icon_url = _config.AuthorIcon ?? ""
                         },
