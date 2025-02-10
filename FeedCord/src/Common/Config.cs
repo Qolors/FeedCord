@@ -26,9 +26,6 @@ namespace FeedCord.Common
         public string? FallbackImage { get; set; }
         public string? FooterImage { get; set; }
         public int Color { get; set; }
-
-
-
         public bool EnableAutoRemove { get; set; }
 
         [Required(ErrorMessage = "Description Limit Property is required.")]
@@ -37,5 +34,7 @@ namespace FeedCord.Common
         public bool Forum { get; set; }
         [Required(ErrorMessage = "Markdown Property is required (True for Markdown Posts, False for Embed Posts)")]
         public bool MarkdownFormat { get; set; }
+        [Required(ErrorMessage = "PersistenceOnShutdown Property is required (True for saving last scan date, False for new instance data on startup)")]
+        public bool PersistenceOnShutdown { get; set; }
     }
 }

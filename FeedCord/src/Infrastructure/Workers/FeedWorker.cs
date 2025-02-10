@@ -12,9 +12,11 @@ namespace FeedCord.Infrastructure.Workers
         private readonly IFeedManager _feedManager;
         private readonly INotifier _notifier;
 
+        private readonly bool _persistent;
+        private readonly string _id;
         private readonly int _delayTime;
         private bool _isInitialized;
-        private readonly string _id;
+        
 
         public FeedWorker(
             IHostApplicationLifetime lifetime,
@@ -30,6 +32,7 @@ namespace FeedCord.Infrastructure.Workers
             _delayTime = config.RssCheckIntervalMinutes;
             _id = config.Id;
             _isInitialized = false;
+            _persistent = config.PersistenceOnShutdown;
 
             logger.LogInformation("{id} Created with check interval {Interval} minutes",
                 _id, config.RssCheckIntervalMinutes);
@@ -72,6 +75,8 @@ namespace FeedCord.Infrastructure.Workers
 
         private void OnShutdown()
         {
+            if (!_persistent) return;
+            
             var data = _feedManager.GetAllFeedData();
             SaveDataToCsv(data);
         }

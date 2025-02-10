@@ -12,16 +12,15 @@ namespace FeedCord.Services.Helpers
     {
         private static string ParseDescription(string source)
         {
+            
             if (string.IsNullOrEmpty(source))
                 return string.Empty;
 
-            string decoded = WebUtility.HtmlDecode(source);
-
-            // 2. Use HtmlAgilityPack to parse
+            var decoded = WebUtility.HtmlDecode(source);
+            
             var doc = new HtmlDocument();
             doc.LoadHtml(decoded);
-
-            // 3. Extract the "pure text"
+            
             return doc.DocumentNode.InnerText;
         }
 
@@ -79,7 +78,7 @@ namespace FeedCord.Services.Helpers
             {
                 title = atomItem.Title;
                 imageLink = imageUrl;
-                description = ParseDescription(post.Description);
+                description = ParseDescription(atomItem.Content);
                 link = atomItem.Links.FirstOrDefault()?.Href ?? string.Empty;
                 subtitle = feed.Title;
                 pubDate = DateTime.TryParse(atomItem.PublishedDate.ToString(), out var tempDate) ? tempDate : default;

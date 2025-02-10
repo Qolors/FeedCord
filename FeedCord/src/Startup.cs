@@ -29,16 +29,19 @@ namespace FeedCord
         private static IHostBuilder CreateHostBuilder(string[] args)
         {
             return Host.CreateDefaultBuilder(args)
-                .ConfigureAppConfiguration(SetupConfiguration)
+                .ConfigureAppConfiguration((ctx, builder) =>
+                {
+                    SetupConfiguration(ctx, builder, args);
+                })
                 .ConfigureLogging(SetupLogging)
                 .ConfigureServices(SetupServices);
         }
 
-        private static void SetupConfiguration(HostBuilderContext ctx, IConfigurationBuilder builder)
+        private static void SetupConfiguration(HostBuilderContext ctx, IConfigurationBuilder builder, string[] args)
         {
-            builder
-                .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-                .AddJsonFile("config/appsettings.json", optional: false, reloadOnChange: true);
+            builder.SetBasePath(AppDomain.CurrentDomain.BaseDirectory);
+            builder.AddJsonFile(args.Length == 1 ? args[0] : "config/appsettings.json", optional: false,
+                reloadOnChange: true);
         }
 
         private static void SetupLogging(HostBuilderContext ctx, ILoggingBuilder logging)
