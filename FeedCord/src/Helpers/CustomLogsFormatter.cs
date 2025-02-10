@@ -2,13 +2,13 @@
 using Microsoft.Extensions.Logging.Console;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace FeedCord.src.Helpers
+namespace FeedCord.Helpers
 {
     public class CustomLogsFormatter : ConsoleFormatter
     {
         public CustomLogsFormatter() : base("customlogsformatter") { }
 
-        public override void Write<TState>(in LogEntry<TState> logEntry, IExternalScopeProvider scopeProvider, TextWriter textWriter)
+        public override void Write<TState>(in LogEntry<TState> logEntry, IExternalScopeProvider? scopeProvider, TextWriter textWriter)
         {
             var originalColor = Console.ForegroundColor;
             var logLevel = logEntry.LogLevel;

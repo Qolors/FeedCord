@@ -1,4 +1,4 @@
-﻿# Release Summary: FeedCord 2.0.0
+﻿# Release Summary: FeedCord 2.0.0 (OBSOLETE)
 
 ## What's New in 2.0.0
 
