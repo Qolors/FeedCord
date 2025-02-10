@@ -107,7 +107,7 @@ docker pull qolors/feedcord:latest
 ```
 Be sure to update the volume path to your `appsettings.json` 
 ```
-docker run --name FeedCord -v "/path/to/your/appsettings.json:/app/config/appsettings.json"
+docker run --name FeedCord -v "/path/to/your/appsettings.json:/app/config/appsettings.json" qolors/feedcord:latest
 ```
 
 ### Build From Source
@@ -160,6 +160,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Control over allowed concurrent HTTP requests FeedCord can make
 - Separate handling of Reddit Feeds
 - Markdown Support
+- Building from source
 
 ### Changed
 
