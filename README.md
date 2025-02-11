@@ -8,7 +8,9 @@ FeedCord is designed to be a 'turn key' automated RSS feed reader with the main 
 
 Use it for increasing community engagement and activity or just for your own personal use. The combination of FeedCord and Discord's Forum Channels can really shine to make a vibrant news feed featuring gallery-style display alongside custom threads, creating an engaging space for your private community discussions.
 
-## An example of what FeedCord can bring to your server
+### An example of what FeedCord can bring to your server
+
+---
 
 ![FeedCord Gallery 1](https://github.com/Qolors/FeedCord/blob/master/FeedCord/docs/images/gallery1.png)
 
@@ -16,7 +18,9 @@ Use it for increasing community engagement and activity or just for your own per
 
 A showing of one channel. Run as many of these as you want!
 
+
 ---
+
 ## Running FeedCord
 
 FeedCord is very simple to get up and running. It only takes a few steps:
