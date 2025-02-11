@@ -24,6 +24,11 @@ namespace FeedCord.Services.Helpers
             return doc.DocumentNode.InnerText;
         }
 
+        private static string Sanitize(string source)
+        {
+            return WebUtility.HtmlDecode(source);
+        }
+
         private static string TryGetAuthor(FeedItem post)
         {
             try
@@ -103,7 +108,18 @@ namespace FeedCord.Services.Helpers
                 description = string.Concat(description.AsSpan(0, trim), "...");
             }
 
-            return new Post(title, imageLink, description, link, subtitle, pubDate, author);
+            var decTitle = Sanitize(title);
+            var decSubtitle = Sanitize(subtitle);
+            var decAuthor = Sanitize(author);
+
+            return new Post(
+                decTitle,
+                imageLink, 
+                description, 
+                link, 
+                decSubtitle, 
+                pubDate, 
+                decAuthor);
         }
 
         private static Post TryBuildRedditPost(
@@ -120,7 +136,7 @@ namespace FeedCord.Services.Helpers
             var author = string.Empty;
             var pubDate = DateTime.MinValue;
             
-            if (post.SpecificItem is AtomFeedItem atomItem && atomItem.Element != null)
+            if (post.SpecificItem is AtomFeedItem { Element: not null } atomItem)
             {
                 title = atomItem.Title;
                 author = TryGetRedditAuthor(atomItem);
