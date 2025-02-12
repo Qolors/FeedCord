@@ -44,7 +44,8 @@ namespace FeedCord.Services
                     var rawXml = GetRawXmlForItem(post);
 
                     var imageLink = await _imageParserService
-                        .TryExtractImageLink(post.Link, rawXml) ?? feed.ImageUrl;
+                        .TryExtractImageLink(post.Link, rawXml) 
+                                    ?? feed.ImageUrl;
 
                     var builtPost = PostBuilder.TryBuildPost(post, feed, trim, imageLink);
 

@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.IO.Compression;
 using System.Text;
+using FeedCord.Services.Helpers;
 
 namespace FeedCord.Services
 {
@@ -165,7 +166,9 @@ namespace FeedCord.Services
                 return;
             }
 
-            var freshlyFetched = posts.Where(p => p.PublishDate > feedState.LastPublishDate).ToList();
+            //var freshlyFetched = posts.Where(p => p.PublishDate > feedState.LastPublishDate).ToList();
+
+            var freshlyFetched = posts;
 
             if (freshlyFetched.Any())
             {
@@ -246,7 +249,8 @@ namespace FeedCord.Services
             }
             else
             {
-                return await response.Content.ReadAsStringAsync();
+                var bytes = await response.Content.ReadAsByteArrayAsync();
+                return EncodingExtractor.ConvertBytesByComparing(bytes, response.Content.Headers);
             }
         }
 

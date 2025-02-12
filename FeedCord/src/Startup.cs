@@ -60,8 +60,12 @@ namespace FeedCord
         {
             services.AddHttpClient("Default", httpClient =>
             {
-                httpClient.Timeout = TimeSpan.FromSeconds(5);
-            });
+                httpClient.Timeout = TimeSpan.FromSeconds(15);
+                httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(
+                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " + 
+                    "(KHTML, like Gecko) Chrome/104.0.5112.79 Safari/537.36"
+                );
+            }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler(){AllowAutoRedirect = true});
 
             var concurrentRequests = ctx.Configuration.GetValue("ConcurrentRequests", 20);
 
