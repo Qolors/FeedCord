@@ -20,6 +20,11 @@ namespace FeedCord.Infrastructure.Parsers
 
         public async Task<Post?> GetXmlUrlAndFeed(string xml)
         {
+            if (xml.StartsWith("https") && xml.Contains("xml"))
+            {
+                return await GetRecentPost(xml);
+            }
+                
 
             var doc = new HtmlDocument();
             doc.LoadHtml(xml);
@@ -74,7 +79,7 @@ namespace FeedCord.Infrastructure.Parsers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error retrieving RSS feed from URL: {xmlUrl}");
+                _logger.LogError(ex, $"Error retrieving RSS feed from URL: {ex}");
                 return null;
             }
         }

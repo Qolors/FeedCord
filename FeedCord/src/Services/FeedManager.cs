@@ -188,13 +188,25 @@ namespace FeedCord.Services
         {
             try
             {
+                Post? post;
+                
+                if (url.Contains("xml"))
+                {
+                    
+                    post = await _rssParsingService.ParseYoutubeFeedAsync(url);
+
+                    return post == null ? 
+                        new List<Post?>() : 
+                        new List<Post?> { post };
+                }
+                
                 var response = await _httpClient.GetAsyncWithFallback(url);
 
                 response.EnsureSuccessStatusCode();
 
                 var xmlContent = await GetResponseContentAsync(response);
 
-                var post = await _rssParsingService.ParseYoutubeFeedAsync(xmlContent);
+                post = await _rssParsingService.ParseYoutubeFeedAsync(xmlContent);
 
                 return post == null ? 
                     new List<Post?>() : 
