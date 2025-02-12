@@ -84,7 +84,11 @@ namespace FeedCord.Services.Helpers
                 description = DecodeContent(atomItem.Content);
                 link = atomItem.Links.FirstOrDefault()?.Href ?? string.Empty;
                 subtitle = feed.Title;
-                pubDate = DateTime.TryParse(atomItem.PublishedDate.ToString(), out var tempDate) ? tempDate : default;
+                pubDate = DateTime.TryParse(atomItem.PublishedDate?.ToString(), out var tempDate) 
+                    ? tempDate 
+                    : DateTime.TryParse(atomItem.UpdatedDate?.ToString(), out tempDate) 
+                        ? tempDate 
+                        : default;
             }
             else
             {
@@ -109,6 +113,16 @@ namespace FeedCord.Services.Helpers
             {
                 description = string.Concat(description.AsSpan(0, trim), "...");
             }
+            var test = new Post(
+                decTitle,
+                imageLink, 
+                description, 
+                link, 
+                decSubtitle, 
+                pubDate, 
+                decAuthor);
+            
+            Console.WriteLine(test);
             
             return new Post(
                 decTitle,
