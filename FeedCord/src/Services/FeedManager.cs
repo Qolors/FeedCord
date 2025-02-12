@@ -166,9 +166,7 @@ namespace FeedCord.Services
                 return;
             }
 
-            //var freshlyFetched = posts.Where(p => p.PublishDate > feedState.LastPublishDate).ToList();
-
-            var freshlyFetched = posts;
+            var freshlyFetched = posts.Where(p => p.PublishDate > feedState.LastPublishDate).ToList();
 
             if (freshlyFetched.Any())
             {
