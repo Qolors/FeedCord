@@ -113,16 +113,6 @@ namespace FeedCord.Services.Helpers
             {
                 description = string.Concat(description.AsSpan(0, trim), "...");
             }
-            var test = new Post(
-                decTitle,
-                imageLink, 
-                description, 
-                link, 
-                decSubtitle, 
-                pubDate, 
-                decAuthor);
-            
-            Console.WriteLine(test);
             
             return new Post(
                 decTitle,
