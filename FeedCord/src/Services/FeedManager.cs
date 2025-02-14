@@ -183,6 +183,24 @@ namespace FeedCord.Services
                     newPosts.Add(post);
                 }
             }
+            else
+            {
+                var recentPost = posts.OrderByDescending(p => p.PublishDate).FirstOrDefault();
+                var noPostSummary = $"""
+                                     The Url: {url}
+                                     Has found no new Posts.
+                                     The latest post's data was:
+                                     - Title: {recentPost.Title}
+                                     - Image: {recentPost.ImageUrl}
+                                     - Link: {recentPost.Link}
+                                     - Author: {recentPost.Author}
+                                     - Publish Date: {recentPost.PublishDate}
+                                     """;
+                var dateCompare = $"The Publish Date is earlier than {feedState.LastPublishDate}";
+                
+                _logger.LogInformation("{NoPostSummary}", noPostSummary);
+                _logger.LogInformation("{DateCompare}", dateCompare);
+            }
         }
         private async Task<List<Post?>> FetchYoutubeAsync(string url)
         {
