@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.IO.Compression;
 using System.Text;
+using FeedCord.Services.Helpers;
 
 namespace FeedCord.Services
 {
@@ -182,18 +183,48 @@ namespace FeedCord.Services
                     newPosts.Add(post);
                 }
             }
+            else
+            {
+                var recentPost = posts.OrderByDescending(p => p.PublishDate).FirstOrDefault();
+                var noPostSummary = $"""
+                                     The Url: {url}
+                                     Has found no new Posts.
+                                     The latest post's data was:
+                                     - Title: {recentPost.Title}
+                                     - Image: {recentPost.ImageUrl}
+                                     - Link: {recentPost.Link}
+                                     - Author: {recentPost.Author}
+                                     - Publish Date: {recentPost.PublishDate}
+                                     """;
+                var dateCompare = $"The Publish Date is earlier than {feedState.LastPublishDate}";
+                
+                _logger.LogInformation("{NoPostSummary}", noPostSummary);
+                _logger.LogInformation("{DateCompare}", dateCompare);
+            }
         }
         private async Task<List<Post?>> FetchYoutubeAsync(string url)
         {
             try
             {
+                Post? post;
+                
+                if (url.Contains("xml"))
+                {
+                    
+                    post = await _rssParsingService.ParseYoutubeFeedAsync(url);
+
+                    return post == null ? 
+                        new List<Post?>() : 
+                        new List<Post?> { post };
+                }
+                
                 var response = await _httpClient.GetAsyncWithFallback(url);
 
                 response.EnsureSuccessStatusCode();
 
                 var xmlContent = await GetResponseContentAsync(response);
 
-                var post = await _rssParsingService.ParseYoutubeFeedAsync(xmlContent);
+                post = await _rssParsingService.ParseYoutubeFeedAsync(xmlContent);
 
                 return post == null ? 
                     new List<Post?>() : 
@@ -246,7 +277,8 @@ namespace FeedCord.Services
             }
             else
             {
-                return await response.Content.ReadAsStringAsync();
+                var bytes = await response.Content.ReadAsByteArrayAsync();
+                return EncodingExtractor.ConvertBytesByComparing(bytes, response.Content.Headers);
             }
         }
 

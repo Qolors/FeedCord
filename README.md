@@ -93,10 +93,19 @@ Before you actually run FeedCord, make sure you have populated your `appsettings
 - FeedCord parses from the channel's base url so simply navigate to the channel home page and use that url.
 - Example here if I was interested in Unbox Therapy & Tyler1:
 
+***NOTE***
+
+If a YouTube link keeps failing at retrieving the RSS Link - Directly use the xml formatted YouTube link. It is more reliable.
+
+The format for that looks like: `"https://www.youtube.com/feeds/videos.xml?channel_id={YOUR_CHANNEL_ID_HERE}"`
+
+You can use online web tools like [tunepocket](https://www.tunepocket.com/youtube-channel-id-finder/?srsltid=AfmBOorSH1Ye9r1erCzY2qaqV_pUa23U8wG-DeAMAhGfGZ9dbMY5RE2j) to get the Id for the channel.
+
 ```json
 "YoutubeUrls": [
        "https://www.youtube.com/@unboxtherapy",
-       "https://www.youtube.com/@TYLER1LOL"
+       "https://www.youtube.com/@TYLER1LOL",
+       "https://www.youtube.com/feeds/videos.xml?channel_id={YOUR_CHANNEL_ID_HERE}"
      ]
 ```
 

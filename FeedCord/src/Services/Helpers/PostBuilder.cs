@@ -10,7 +10,7 @@ namespace FeedCord.Services.Helpers
 {
     public static partial class PostBuilder
     {
-        private static string ParseDescription(string source)
+        private static string DecodeContent(string source)
         {
             
             if (string.IsNullOrEmpty(source))
@@ -18,15 +18,13 @@ namespace FeedCord.Services.Helpers
 
             var decoded = WebUtility.HtmlDecode(source);
             
+            //WebUtility Decode apparently parses this inconsistently, so manually converting it here
+            decoded = decoded.Replace("&apos;", "'"); 
+            
             var doc = new HtmlDocument();
             doc.LoadHtml(decoded);
             
             return doc.DocumentNode.InnerText;
-        }
-
-        private static string Sanitize(string source)
-        {
-            return WebUtility.HtmlDecode(source);
         }
 
         private static string TryGetAuthor(FeedItem post)
@@ -83,22 +81,30 @@ namespace FeedCord.Services.Helpers
             {
                 title = atomItem.Title;
                 imageLink = imageUrl;
-                description = ParseDescription(atomItem.Content);
+                description = DecodeContent(atomItem.Content);
                 link = atomItem.Links.FirstOrDefault()?.Href ?? string.Empty;
                 subtitle = feed.Title;
-                pubDate = DateTime.TryParse(atomItem.PublishedDate.ToString(), out var tempDate) ? tempDate : default;
+                pubDate = DateTime.TryParse(atomItem.PublishedDate?.ToString(), out var tempDate) 
+                    ? tempDate 
+                    : DateTime.TryParse(atomItem.UpdatedDate?.ToString(), out tempDate) 
+                        ? tempDate 
+                        : default;
             }
             else
             {
                 title = post.Title;
                 imageLink = imageUrl;
-                description = ParseDescription(post.Description);
+                description = DecodeContent(post.Description);
                 link = post.Link ?? string.Empty;
                 subtitle = feed.Title;
                 pubDate = DateTime.TryParse(post.PublishingDate.ToString(), out var tempDate) ? tempDate : default;
             }
 
             var author = TryGetAuthor(post);
+            
+            var decTitle = DecodeContent(title);
+            var decSubtitle = DecodeContent(subtitle);
+            var decAuthor = DecodeContent(author);
 
             if (trim == 0) 
                 return new Post(title, imageLink, description, link, subtitle, pubDate, author);
@@ -107,11 +113,7 @@ namespace FeedCord.Services.Helpers
             {
                 description = string.Concat(description.AsSpan(0, trim), "...");
             }
-
-            var decTitle = Sanitize(title);
-            var decSubtitle = Sanitize(subtitle);
-            var decAuthor = Sanitize(author);
-
+            
             return new Post(
                 decTitle,
                 imageLink, 
@@ -131,7 +133,7 @@ namespace FeedCord.Services.Helpers
             var title = post.Title ?? string.Empty;
             var imageLink = fallbackImageUrl;
             var link = post.Link ?? string.Empty;
-            var description = ParseDescription(post.Description ?? string.Empty);
+            var description = DecodeContent(post.Description ?? string.Empty);
             var subtitle = feed.Title;
             var author = string.Empty;
             var pubDate = DateTime.MinValue;
@@ -164,12 +166,12 @@ namespace FeedCord.Services.Helpers
                 var contentEl = atomItem.Element.Element(atomItem.Element.Name.Namespace + "content");
                 if (contentEl != null)
                 {
-                    description = ParseDescription(contentEl.Value);
+                    description = DecodeContent(contentEl.Value);
                 }
                 else
                 {
                     if (post.Description != null) 
-                        description = ParseDescription(post.Description);
+                        description = DecodeContent(post.Description);
                 }
                 
                 var altLink = atomItem.Links
