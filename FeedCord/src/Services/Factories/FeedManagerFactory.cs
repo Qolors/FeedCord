@@ -1,4 +1,5 @@
 ﻿using FeedCord.Common;
+using FeedCord.Core.Interfaces;
 using FeedCord.Services.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -13,9 +14,9 @@ namespace FeedCord.Services.Factories
             _serviceProvider = serviceProvider;
         }
 
-        public IFeedManager Create(Config config)
+        public IFeedManager Create(Config config, ILogAggregator logAggregator)
         {
-            return ActivatorUtilities.CreateInstance<FeedManager>(_serviceProvider, config);
+            return ActivatorUtilities.CreateInstance<FeedManager>(_serviceProvider, config, logAggregator);
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using FeedCord.Common;
+using FeedCord.Core.Interfaces;
 using FeedCord.Infrastructure.Workers;
 using FeedCord.Services.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,10 +18,10 @@ namespace FeedCord.Infrastructure.Factories
             _logger = rssCheckerLogger;
         }
 
-        public FeedWorker Create(Config config, IFeedManager feedProcessor, INotifier notifier)
+        public FeedWorker Create(Config config, ILogAggregator loggerAggregator, IFeedManager feedProcessor, INotifier notifier)
         {
             _logger.LogInformation("Creating new RssCheckerBackgroundService instance for {Id}", config.Id);
-            return ActivatorUtilities.CreateInstance<FeedWorker>(_serviceProvider, config, feedProcessor, notifier);
+            return ActivatorUtilities.CreateInstance<FeedWorker>(_serviceProvider, config, loggerAggregator, feedProcessor, notifier);
         }
     }
 }

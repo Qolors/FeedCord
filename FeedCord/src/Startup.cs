@@ -60,7 +60,7 @@ namespace FeedCord
         {
             services.AddHttpClient("Default", httpClient =>
             {
-                httpClient.Timeout = TimeSpan.FromSeconds(15);
+                httpClient.Timeout = TimeSpan.FromSeconds(30);
                 httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(
                     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " + 
                     "(KHTML, like Gecko) Chrome/104.0.5112.79 Safari/537.36"
@@ -75,6 +75,12 @@ namespace FeedCord
             }
 
             services.AddSingleton(new SemaphoreSlim(concurrentRequests));
+            
+            services.AddSingleton<IBatchLogger, BatchLogger>(sp =>
+            {
+                var logger = sp.GetRequiredService<ILogger<BatchLogger>>();
+                return new BatchLogger(logger);
+            });
 
             services.AddTransient<ICustomHttpClient, CustomHttpClient>(sp =>
             {
@@ -86,6 +92,7 @@ namespace FeedCord
                 return new CustomHttpClient(logger, httpClient, throttle);
             });
 
+            services.AddTransient<ILogAggregatorFactory, LogAggregatorFactory>();
             services.AddTransient<IFeedWorkerFactory, FeedWorkerFactory>();
             services.AddTransient<IFeedManagerFactory, FeedManagerFactory>();
             services.AddTransient<INotifierFactory, NotifierFactory>();
@@ -97,7 +104,7 @@ namespace FeedCord
 
             var configs = ctx.Configuration.GetSection("Instances")
                 .Get<List<Config>>() ?? new List<Config>();
-
+            
             Console.WriteLine($"Number of configurations loaded: {configs.Count}");
 
             foreach (var c in configs)
@@ -112,12 +119,14 @@ namespace FeedCord
                     var feedWorkerFactory = sp.GetRequiredService<IFeedWorkerFactory>();
                     var notifierFactory = sp.GetRequiredService<INotifierFactory>();
                     var discordPayloadServiceFactory = sp.GetRequiredService<IDiscordPayloadServiceFactory>();
+                    var logAggregatorFactory = sp.GetRequiredService<ILogAggregatorFactory>();
 
-                    var feedManager = feedManagerFactory.Create(c);
+                    var logAggregator = logAggregatorFactory.Create(c);
+                    var feedManager = feedManagerFactory.Create(c, logAggregator);
                     var discordPayloadService = discordPayloadServiceFactory.Create(c);
                     var notifier = notifierFactory.Create(c, discordPayloadService);
 
-                    return feedWorkerFactory.Create(c, feedManager, notifier);
+                    return feedWorkerFactory.Create(c, logAggregator, feedManager, notifier);
                 });
             }
         }

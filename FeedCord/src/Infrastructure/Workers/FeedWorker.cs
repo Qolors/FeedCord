@@ -1,4 +1,5 @@
 ﻿using FeedCord.Common;
+using FeedCord.Core.Interfaces;
 using FeedCord.Services.Interfaces;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -8,6 +9,7 @@ namespace FeedCord.Infrastructure.Workers
     public class FeedWorker : BackgroundService
     {
         private readonly IHostApplicationLifetime _lifetime;
+        private readonly ILogAggregator _logAggregator;
         private readonly ILogger<FeedWorker> _logger;
         private readonly IFeedManager _feedManager;
         private readonly INotifier _notifier;
@@ -23,7 +25,8 @@ namespace FeedCord.Infrastructure.Workers
             ILogger<FeedWorker> logger,
             IFeedManager feedManager,
             INotifier notifier,
-            Config config)
+            Config config,
+            ILogAggregator logAggregator)
         {
             _lifetime = lifetime;
             _logger = logger;
@@ -33,6 +36,7 @@ namespace FeedCord.Infrastructure.Workers
             _id = config.Id;
             _isInitialized = false;
             _persistent = config.PersistenceOnShutdown;
+            _logAggregator = logAggregator;
 
             logger.LogInformation("{id} Created with check interval {Interval} minutes",
                 _id, config.RssCheckIntervalMinutes);
@@ -45,11 +49,23 @@ namespace FeedCord.Infrastructure.Workers
 
             while (!stoppingToken.IsCancellationRequested)
             {
-                _logger.LogInformation("{id} Starting Background Processing at {CurrentTime}..", _id, DateTime.Now);
+                _logAggregator.SetStartTime(DateTime.Now);
 
-                await RunRoutineBackgroundProcessAsync();
+                try
+                {
+                    await RunRoutineBackgroundProcessAsync();
+                }
+                catch (Exception e)
+                {
+                    _logger.LogCritical("Critical Error in Background Process: {E}", e);
+                    throw;
+                }
 
-                _logger.LogInformation("{id} Finished Background Processing at {CurrentTime}..", _id, DateTime.Now);
+                
+
+                _logAggregator.SetEndTime(DateTime.Now);
+
+                await _logAggregator.SendToBatchAsync();
 
                 await Task.Delay(TimeSpan.FromMinutes(_delayTime), stoppingToken);
             }
