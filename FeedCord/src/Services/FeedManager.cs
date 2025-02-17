@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.IO.Compression;
 using System.Text;
+using FeedCord.Core.Interfaces;
 using FeedCord.Services.Helpers;
 
 namespace FeedCord.Services
@@ -13,6 +14,7 @@ namespace FeedCord.Services
     {
         private readonly Config _config;
         private readonly ICustomHttpClient _httpClient;
+        private readonly ILogAggregator _logAggregator;
         private readonly ILogger<FeedManager> _logger;
         private readonly IRssParsingService _rssParsingService;
         private readonly Dictionary<string, ReferencePost> _lastRunReference;
@@ -22,13 +24,15 @@ namespace FeedCord.Services
             Config config,
             ICustomHttpClient httpClient,
             IRssParsingService rssParsingService,
-            ILogger<FeedManager> logger)
+            ILogger<FeedManager> logger,
+            ILogAggregator logAggregator)
         {
             _config = config;
             _httpClient = httpClient;
             _lastRunReference = CsvReader.LoadReferencePosts("feed_dump.csv");
             _rssParsingService = rssParsingService;
             _logger = logger;
+            _logAggregator = logAggregator;
             _feedStates = new ConcurrentDictionary<string, FeedState>();
         }
         public async Task<List<Post>> CheckForNewPostsAsync()
@@ -39,27 +43,27 @@ namespace FeedCord.Services
                 await CheckSingleFeedAsync(feed.Key, feed.Value, allNewPosts, _config.DescriptionLimit));
 
             await Task.WhenAll(tasks);
+            
+            _logAggregator.SetNewPostCount(allNewPosts.Count);
 
             return allNewPosts.ToList();
         }
         public async Task InitializeUrlsAsync()
         {
-            var totalUrls = 0;
-            var rssCount = await GetSuccessCount(_config.RssUrls, false);
-            var youtubeCount = await GetSuccessCount(_config.YoutubeUrls, true);
-            var successCount = 0;
             var id = _config.Id;
-
-            if (_config.YoutubeUrls.Length == 1 && string.IsNullOrEmpty(_config.YoutubeUrls[0]))
-            {
-                totalUrls = _config.RssUrls.Length;
-            }
-            else
-            {
-                totalUrls = _config.RssUrls.Length + _config.YoutubeUrls.Length;
-            }
-
-            successCount = rssCount + youtubeCount;
+            var validRssUrls = _config.RssUrls
+                .Where(url => !string.IsNullOrWhiteSpace(url))
+                .ToArray();
+    
+            var validYoutubeUrls = _config.YoutubeUrls
+                .Where(url => !string.IsNullOrWhiteSpace(url))
+                .ToArray();
+            
+            var rssCount = await GetSuccessCount(validRssUrls, false);
+            var youtubeCount = await GetSuccessCount(validYoutubeUrls, true);
+            var successCount = rssCount + youtubeCount;
+            
+            var totalUrls = validRssUrls.Length + validYoutubeUrls.Length;
 
             _logger.LogInformation("{id}: Tested successfully for {UrlCount} out of {TotalUrls} Urls in Configuration File", id, successCount, totalUrls);
         }
@@ -81,7 +85,10 @@ namespace FeedCord.Services
             {
                 var isSuccess = await TestUrlAsync(url);
 
-                if (!isSuccess) continue;
+                if (!isSuccess)
+                {
+                    continue;
+                }
                 
                 if (_lastRunReference.TryGetValue(url, out var value))
                 {
@@ -91,8 +98,6 @@ namespace FeedCord.Services
                         LastPublishDate = value.LastRunDate,
                         ErrorCount = 0
                     });
-
-                    _logger.LogInformation("Successfully initialized Existing URL: {Url}", url);
 
                     successCount++;
 
@@ -123,7 +128,6 @@ namespace FeedCord.Services
                 if (successfulAdd)
                 {
                     successCount++;
-                    _logger.LogInformation("Successfully initialized URL: {Url}", url);
                 }
 
                 else
@@ -139,21 +143,33 @@ namespace FeedCord.Services
             try
             {
                 var response = await _httpClient.GetAsyncWithFallback(url);
-                _logger.LogInformation($"Status Code: {(int)response.StatusCode} {response.StatusCode}");
+
+                if (response is null)
+                {
+                    _logAggregator.AddUrlResponse(url, -99);
+                    return false;
+                }
+
+                _logAggregator.AddUrlResponse(url, (int)response.StatusCode);
 
                 response.EnsureSuccessStatusCode();
+                
                 return true;
             }
-            catch (HttpRequestException)
+            catch (HttpRequestException ex)
+            {
+                _logAggregator.AddUrlResponse(url, (int)ex.StatusCode);
+                return false;
+            }
+            catch (Exception ex)
             {
                 return false;
             }
         }
         private async Task CheckSingleFeedAsync(string url, FeedState feedState, ConcurrentBag<Post> newPosts, int trim)
         {
-            _logger.LogInformation("Checking if any new posts for {Url}...", url);
-
             List<Post?> posts;
+            
             try
             {
                 posts = feedState.IsYoutube ?
@@ -166,11 +182,11 @@ namespace FeedCord.Services
                 return;
             }
 
-            var freshlyFetched = posts.Where(p => p.PublishDate > feedState.LastPublishDate).ToList();
+            var freshlyFetched = posts.Where(p => p?.PublishDate > feedState.LastPublishDate).ToList();
 
             if (freshlyFetched.Any())
             {
-                feedState.LastPublishDate = freshlyFetched.Max(p => p.PublishDate);
+                feedState.LastPublishDate = freshlyFetched.Max(p => p!.PublishDate);
                 feedState.ErrorCount = 0;
 
                 foreach (var post in freshlyFetched)
@@ -185,22 +201,9 @@ namespace FeedCord.Services
             }
             else
             {
-                var recentPost = posts.OrderByDescending(p => p.PublishDate).FirstOrDefault();
-                var noPostSummary = $"""
-                                     The Url: {url}
-                                     Has found no new Posts.
-                                     The latest post's data was:
-                                     - Title: {recentPost.Title}
-                                     - Image: {recentPost.ImageUrl}
-                                     - Link: {recentPost.Link}
-                                     - Author: {recentPost.Author}
-                                     - Publish Date: {recentPost.PublishDate}
-                                     """;
-                var dateCompare = $"The Publish Date is earlier than {feedState.LastPublishDate}";
-                
-                _logger.LogInformation("{NoPostSummary}", noPostSummary);
-                _logger.LogInformation("{DateCompare}", dateCompare);
+                _logAggregator.AddLatestUrlPost(url, posts.OrderByDescending(p => p?.PublishDate).FirstOrDefault());
             }
+            
         }
         private async Task<List<Post?>> FetchYoutubeAsync(string url)
         {
@@ -208,6 +211,7 @@ namespace FeedCord.Services
             {
                 Post? post;
                 
+                //TODO --> BETTER HANDLING - TEMP FIX FOR INSERTING XML LINKS IN TO YOUTUBE - WE SKIP PARSING HTML
                 if (url.Contains("xml"))
                 {
                     
@@ -220,7 +224,12 @@ namespace FeedCord.Services
                 
                 var response = await _httpClient.GetAsyncWithFallback(url);
 
-                response.EnsureSuccessStatusCode();
+                if (response is null)
+                {
+                    throw new Exception();
+                }
+
+                response!.EnsureSuccessStatusCode();
 
                 var xmlContent = await GetResponseContentAsync(response);
 
@@ -233,12 +242,12 @@ namespace FeedCord.Services
             }
             catch (HttpRequestException ex)
             {
-                _logger.LogWarning("Failed to fetch or process the RSS feed from {Url}: Response Ended Prematurely - Skipping Url", url);
+                _logger.LogWarning("Failed to fetch or process the RSS feed from {Url}: Response Ended Prematurely - Skipping Url - Exception Message: {Ex}", url, ex);
                 return new List<Post?>();
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "An unexpected error occurred while checking the RSS feed from {Url}", url);
+                _logger.LogWarning("An unexpected error occurred while checking the RSS feed from {Url} - Exception Message: {Ex}", url, ex);
                 return new List<Post?>();
             }
         }
@@ -249,6 +258,11 @@ namespace FeedCord.Services
             {
                 var response = await _httpClient.GetAsyncWithFallback(url);
 
+                if (response is null)
+                {
+                    throw new Exception();
+                }
+
                 response.EnsureSuccessStatusCode();
 
                 var xmlContent = await GetResponseContentAsync(response);
@@ -258,12 +272,12 @@ namespace FeedCord.Services
             }
             catch (HttpRequestException ex)
             {
-                _logger.LogWarning("Failed to fetch or process the RSS feed from {Url}: Response Ended Prematurely - Skipping Url", url);
+                _logger.LogWarning("Failed to fetch or process the RSS feed from {Url}: {Ex}", url, ex);
                 return new List<Post?>();
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "An unexpected error occurred while checking the RSS feed from {Url}", url);
+                _logger.LogWarning("An unexpected error occurred while checking the RSS feed from {Url}: {Ex}", url, ex);
                 return new List<Post?>();
             }
         }

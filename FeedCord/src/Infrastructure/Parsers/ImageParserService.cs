@@ -110,6 +110,9 @@ namespace FeedCord.Infrastructure.Parsers
             {
                 // Download HTML
                 var response = await _httpClient.GetAsyncWithFallback(pageUrl);
+
+                if (response is null) return string.Empty;
+                
                 response.EnsureSuccessStatusCode();
                 var htmlContent = await response.Content.ReadAsStringAsync();
 

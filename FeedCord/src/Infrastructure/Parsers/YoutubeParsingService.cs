@@ -37,7 +37,7 @@ namespace FeedCord.Infrastructure.Parsers
                 return await GetRecentPost(hrefValue);
             }
 
-            _logger.LogInformation("No RSS feed link found in the provided XML.");
+            _logger.LogWarning("No RSS feed link found in the provided XML.");
             return null;
         }
 
@@ -51,6 +51,9 @@ namespace FeedCord.Infrastructure.Parsers
             try
             {
                 var response = await _httpClient.GetAsyncWithFallback(xmlUrl);
+
+                if (response is null) return null;
+                
                 response.EnsureSuccessStatusCode();
 
                 var xmlContent = await response.Content.ReadAsStringAsync();
@@ -72,14 +75,13 @@ namespace FeedCord.Infrastructure.Parsers
                 var videoThumbnail = videoEntry.Element(mediaNs + "group")?.Element(mediaNs + "thumbnail")?.Attribute("url")?.Value ?? string.Empty;
                 var videoPublished = DateTime.Parse(videoEntry.Element(atomNs + "published")?.Value ?? DateTime.MinValue.ToString(CultureInfo.CurrentCulture));
                 var videoAuthor = videoEntry.Element(atomNs + "author")?.Element(atomNs + "name")?.Value ?? string.Empty;
-
-                _logger.LogInformation($"Retrieved post: {videoTitle} by {videoAuthor}, published on {videoPublished}");
+                
 
                 return new Post(videoTitle, videoThumbnail, string.Empty, videoLink, channelTitle, videoPublished, videoAuthor);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error retrieving RSS feed from URL: {ex}");
+                _logger.LogError("Error retrieving RSS feed from URL: {Ex}", ex);
                 return null;
             }
         }

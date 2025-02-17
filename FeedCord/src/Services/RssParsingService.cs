@@ -57,14 +57,19 @@ namespace FeedCord.Services
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "An unexpected error occurred while parsing the RSS feed");
+                _logger.LogWarning("An unexpected error occurred while parsing the RSS feed: {Ex}", ex);
                 return new List<Post?>();
             }
         }
 
         public async Task<Post?> ParseYoutubeFeedAsync(string channelUrl)
         {
-            return await _youtubeParsingService.GetXmlUrlAndFeed(channelUrl);
+            var youtubePost = await _youtubeParsingService.GetXmlUrlAndFeed(channelUrl);
+            
+            if (youtubePost is null)
+                _logger.LogWarning("Failed to parse Youtube Feed from url: {ChannelUrl} - Try directly feeding the xml formatted Url, otherwise could be a malformed feed", channelUrl);
+            
+            return youtubePost;
         }
 
         private string GetRawXmlForItem(FeedItem feedItem)
