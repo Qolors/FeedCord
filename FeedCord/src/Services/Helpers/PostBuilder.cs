@@ -19,7 +19,10 @@ namespace FeedCord.Services.Helpers
             var decoded = WebUtility.HtmlDecode(source);
             
             //WebUtility Decode apparently parses this inconsistently, so manually converting it here
-            decoded = decoded.Replace("&apos;", "'"); 
+            decoded = decoded.Replace("&apos;", "'");
+            
+            //Respects line break encoding
+            decoded = LineBreakRegex().Replace(decoded, Environment.NewLine);
             
             var doc = new HtmlDocument();
             doc.LoadHtml(decoded);
@@ -239,6 +242,8 @@ namespace FeedCord.Services.Helpers
 
         [GeneratedRegex("<img[^>]+src\\s*=\\s*['\"](?<src>[^'\"]+)['\"]", RegexOptions.IgnoreCase, "en-US")]
         private static partial Regex HtmlRegex();
+        [GeneratedRegex("<br\\s*/?>", RegexOptions.IgnoreCase, "en-US")]
+        private static partial Regex LineBreakRegex();
     }
 
 
