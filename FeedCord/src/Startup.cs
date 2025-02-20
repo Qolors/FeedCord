@@ -15,6 +15,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 
 namespace FeedCord
 {
@@ -71,7 +72,7 @@ namespace FeedCord
 
             if (concurrentRequests != 20)
             {
-                Console.WriteLine($"Concurrent Requests set to: {concurrentRequests}");
+                Console.WriteLine($"Blanket Concurrent Requests set to: {concurrentRequests}");
             }
 
             services.AddSingleton(new SemaphoreSlim(concurrentRequests));

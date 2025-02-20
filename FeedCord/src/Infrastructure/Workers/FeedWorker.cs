@@ -100,7 +100,7 @@ namespace FeedCord.Infrastructure.Workers
         private void SaveDataToCsv(IReadOnlyDictionary<string, FeedState> data)
         {
             var filePath = Path.Combine(AppContext.BaseDirectory, "feed_dump.csv");
-            using var writer = new StreamWriter(filePath);
+            using var writer = new StreamWriter(filePath, append: true);
 
             foreach (var (key, value) in data)
             {

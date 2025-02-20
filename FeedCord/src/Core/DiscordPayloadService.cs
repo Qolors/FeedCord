@@ -6,6 +6,7 @@ using System.Net.Http;
 
 namespace FeedCord.Core
 {
+    //TODO --> Eventually Define data classes
     public class DiscordPayloadService : IDiscordPayloadService
     {
         private Config _config;
@@ -65,7 +66,9 @@ namespace FeedCord.Core
             if (_config.MarkdownFormat)
                 return GenerateMarkdown(post);
             
-            var payload = new
+            object? payload = null;
+            
+            payload = new
             {
                 content = post.Tag,
                 embeds = new[]

@@ -1,7 +1,7 @@
 namespace FeedCord.Common;
 
-public class WordFilters
+public class PostFilters
 {
     public string Url { get; set; }
-    public List<string> Words { get; set; }
+    public List<string> Filters { get; set; }
 }

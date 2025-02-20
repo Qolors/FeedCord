@@ -63,7 +63,7 @@ public class BatchLogger : IBatchLogger
         }
         else
         {
-            batchSummary.AppendLine($"> {logItem.NewPostCount} new posts found in the feed.");
+            batchSummary.AppendLine($"> {logItem.NewPostCount} new posts found in the feed - posting to Discord Hook..");
         }
         
         _logger.LogInformation(batchSummary.ToString());

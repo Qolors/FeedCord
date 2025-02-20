@@ -94,8 +94,7 @@ namespace FeedCord.Infrastructure.Http
                     }
                     else
                     {
-                        _logger.LogError("Failed to post to Discord Channel after fallback attempts: {Url}", url);
-
+                        _logger.LogError("Failed to post to Discord Channel after fallback attempts");
                     }
                 }
             }

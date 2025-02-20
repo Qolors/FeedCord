@@ -12,7 +12,10 @@ namespace FeedCord.Services
 {
     public class FeedManager : IFeedManager
     {
+        private readonly bool _hasAllFilter = false;
+        private readonly bool _hasFilterEnabled = false;
         private readonly Config _config;
+        private readonly SemaphoreSlim _instancedConcurrentRequests;
         private readonly ICustomHttpClient _httpClient;
         private readonly ILogAggregator _logAggregator;
         private readonly ILogger<FeedManager> _logger;
@@ -34,6 +37,15 @@ namespace FeedCord.Services
             _logger = logger;
             _logAggregator = logAggregator;
             _feedStates = new ConcurrentDictionary<string, FeedState>();
+            _hasFilterEnabled = config.PostFilters is not null && config.PostFilters.Any();
+            _instancedConcurrentRequests = new SemaphoreSlim(config.ConcurrentRequests);
+            
+            //TODO --> this sets flag for 'all' in filters - this and all filter logic needs to be moved out of FeedManager and in to it's own helper/service
+            if (_hasFilterEnabled)
+            {
+                if (_config.PostFilters.Any(wf => wf.Url == "all"))
+                    _hasAllFilter = true;
+            }
         }
         public async Task<List<Post>> CheckForNewPostsAsync()
         {
@@ -142,6 +154,8 @@ namespace FeedCord.Services
         {
             try
             {
+                await _instancedConcurrentRequests.WaitAsync();
+
                 var response = await _httpClient.GetAsyncWithFallback(url);
 
                 if (response is null)
@@ -153,18 +167,23 @@ namespace FeedCord.Services
                 _logAggregator.AddUrlResponse(url, (int)response.StatusCode);
 
                 response.EnsureSuccessStatusCode();
-                
+
                 return true;
             }
             catch (HttpRequestException ex)
             {
                 _logAggregator.AddUrlResponse(url, (int)ex.StatusCode);
-                return false;
             }
             catch (Exception ex)
             {
-                return false;
+                _logger.LogWarning("Failed to instantiate URL: {Url}", url);
             }
+            finally
+            {
+                _instancedConcurrentRequests.Release();
+            }
+            
+            return false;
         }
         private async Task CheckSingleFeedAsync(string url, FeedState feedState, ConcurrentBag<Post> newPosts, int trim)
         {
@@ -172,8 +191,10 @@ namespace FeedCord.Services
             
             try
             {
-                posts = feedState.IsYoutube ?
-                    await FetchYoutubeAsync(url) :
+                await _instancedConcurrentRequests.WaitAsync();
+
+                posts = feedState.IsYoutube ? 
+                    await FetchYoutubeAsync(url) : 
                     await FetchRssAsync(url, trim);
             }
             catch (Exception ex)
@@ -181,7 +202,11 @@ namespace FeedCord.Services
                 HandleFeedError(url, feedState, ex);
                 return;
             }
-
+            finally
+            {
+                _instancedConcurrentRequests.Release();
+            }
+            
             var freshlyFetched = posts.Where(p => p?.PublishDate > feedState.LastPublishDate).ToList();
 
             if (freshlyFetched.Any())
@@ -196,7 +221,47 @@ namespace FeedCord.Services
                         _logger.LogWarning("Failed to parse a post from {Url}", url);
                         continue;
                     }
-                    newPosts.Add(post);
+                    
+                    //TODO --> Implement Filter checking in to a helper/service & remove from FeedManager
+                    if (_hasFilterEnabled)
+                    {
+                        
+                        if (_config.PostFilters.FirstOrDefault(wf => wf.Url == url) is { } filter)
+                        {
+                            var filterFound = FilterConfigs.GetFilterSuccess(post, filter.Filters.ToArray());
+
+                            if (filterFound)
+                            {
+                                newPosts.Add(post);
+                            }
+                            else
+                            {
+                                _logger.LogInformation(
+                                    "A new post was omitted because it does not comply to the set filter: {Url}", url);
+                            }
+                        }
+                        else if (_hasAllFilter)
+                        {
+                            if (_config.PostFilters.FirstOrDefault(wf => wf.Url == "all") is { } allFilter)
+                            {
+                                var filterFound = FilterConfigs.GetFilterSuccess(post, allFilter.Filters.ToArray());
+
+                                if (filterFound)
+                                {
+                                    newPosts.Add(post);
+                                }
+                                else
+                                {
+                                    _logger.LogInformation(
+                                        "A new post was omitted because it does not comply to the set filter: {Url}", url);
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        newPosts.Add(post);
+                    }
                 }
             }
             else
@@ -210,18 +275,16 @@ namespace FeedCord.Services
             try
             {
                 Post? post;
-                
+
                 //TODO --> BETTER HANDLING - TEMP FIX FOR INSERTING XML LINKS IN TO YOUTUBE - WE SKIP PARSING HTML
                 if (url.Contains("xml"))
                 {
-                    
+
                     post = await _rssParsingService.ParseYoutubeFeedAsync(url);
 
-                    return post == null ? 
-                        new List<Post?>() : 
-                        new List<Post?> { post };
+                    return post == null ? new List<Post?>() : new List<Post?> { post };
                 }
-                
+
                 var response = await _httpClient.GetAsyncWithFallback(url);
 
                 if (response is null)
@@ -235,27 +298,30 @@ namespace FeedCord.Services
 
                 post = await _rssParsingService.ParseYoutubeFeedAsync(xmlContent);
 
-                return post == null ? 
-                    new List<Post?>() : 
-                    new List<Post?> { post };
+                return post == null ? new List<Post?>() : new List<Post?> { post };
 
             }
             catch (HttpRequestException ex)
             {
-                _logger.LogWarning("Failed to fetch or process the RSS feed from {Url}: Response Ended Prematurely - Skipping Url - Exception Message: {Ex}", url, ex);
-                return new List<Post?>();
+                _logger.LogWarning(
+                    "Failed to fetch or process the RSS feed from {Url}: Response Ended Prematurely - Skipping Url - Exception Message: {Ex}",
+                    url, ex);
             }
             catch (Exception ex)
             {
-                _logger.LogWarning("An unexpected error occurred while checking the RSS feed from {Url} - Exception Message: {Ex}", url, ex);
-                return new List<Post?>();
+                _logger.LogWarning(
+                    "An unexpected error occurred while checking the RSS feed from {Url} - Exception Message: {Ex}",
+                    url, ex);
             }
+            
+            return new List<Post?>();
         }
 
         private async Task<List<Post?>> FetchRssAsync(string url, int trim)
         {
             try
             {
+
                 var response = await _httpClient.GetAsyncWithFallback(url);
 
                 if (response is null)
@@ -273,13 +339,18 @@ namespace FeedCord.Services
             catch (HttpRequestException ex)
             {
                 _logger.LogWarning("Failed to fetch or process the RSS feed from {Url}: {Ex}", url, ex);
-                return new List<Post?>();
             }
             catch (Exception ex)
             {
-                _logger.LogWarning("An unexpected error occurred while checking the RSS feed from {Url}: {Ex}", url, ex);
-                return new List<Post?>();
+                _logger.LogWarning("An unexpected error occurred while checking the RSS feed from {Url}: {Ex}", url,
+                    ex);
             }
+            finally
+            {
+
+            }
+
+            return new List<Post?>();
         }
         private async Task<string> GetResponseContentAsync(HttpResponseMessage response)
         {
