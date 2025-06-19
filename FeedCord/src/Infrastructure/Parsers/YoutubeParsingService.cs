@@ -59,6 +59,8 @@ namespace FeedCord.Infrastructure.Parsers
                 var xmlContent = await response.Content.ReadAsStringAsync();
 
                 var xdoc = XDocument.Parse(xmlContent);
+                if (xdoc.Root == null) return null;
+
                 XNamespace atomNs = "http://www.w3.org/2005/Atom";
                 XNamespace mediaNs = "http://search.yahoo.com/mrss/";
 

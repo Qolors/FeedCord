@@ -37,11 +37,11 @@ namespace FeedCord.Services
             _logger = logger;
             _logAggregator = logAggregator;
             _feedStates = new ConcurrentDictionary<string, FeedState>();
-            _hasFilterEnabled = config.PostFilters is not null && config.PostFilters.Any();
+            _hasFilterEnabled = config.PostFilters?.Any() ?? false;
             _instancedConcurrentRequests = new SemaphoreSlim(config.ConcurrentRequests);
-            
+
             //TODO --> this sets flag for 'all' in filters - this and all filter logic needs to be moved out of FeedManager and in to it's own helper/service
-            if (_hasFilterEnabled)
+            if (_hasFilterEnabled && _config.PostFilters != null)
             {
                 if (_config.PostFilters.Any(wf => wf.Url == "all"))
                     _hasAllFilter = true;
@@ -51,11 +51,11 @@ namespace FeedCord.Services
         {
             ConcurrentBag<Post> allNewPosts = new();
 
-            var tasks = _feedStates.Select(async (feed) => 
+            var tasks = _feedStates.Select(async (feed) =>
                 await CheckSingleFeedAsync(feed.Key, feed.Value, allNewPosts, _config.DescriptionLimit));
 
             await Task.WhenAll(tasks);
-            
+
             _logAggregator.SetNewPostCount(allNewPosts.Count);
 
             return allNewPosts.ToList();
@@ -66,15 +66,15 @@ namespace FeedCord.Services
             var validRssUrls = _config.RssUrls
                 .Where(url => !string.IsNullOrWhiteSpace(url))
                 .ToArray();
-    
+
             var validYoutubeUrls = _config.YoutubeUrls
                 .Where(url => !string.IsNullOrWhiteSpace(url))
                 .ToArray();
-            
+
             var rssCount = await GetSuccessCount(validRssUrls, false);
             var youtubeCount = await GetSuccessCount(validYoutubeUrls, true);
             var successCount = rssCount + youtubeCount;
-            
+
             var totalUrls = validRssUrls.Length + validYoutubeUrls.Length;
 
             _logger.LogInformation("{id}: Tested successfully for {UrlCount} out of {TotalUrls} Urls in Configuration File", id, successCount, totalUrls);
@@ -101,7 +101,7 @@ namespace FeedCord.Services
                 {
                     continue;
                 }
-                
+
                 if (_lastRunReference.TryGetValue(url, out var value))
                 {
                     _feedStates.TryAdd(url, new FeedState
@@ -172,9 +172,9 @@ namespace FeedCord.Services
             }
             catch (HttpRequestException ex)
             {
-                _logAggregator.AddUrlResponse(url, (int)ex.StatusCode);
+                _logAggregator.AddUrlResponse(url, (int)(ex.StatusCode ?? System.Net.HttpStatusCode.BadRequest));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 _logger.LogWarning("Failed to instantiate URL: {Url}", url);
             }
@@ -182,19 +182,19 @@ namespace FeedCord.Services
             {
                 _instancedConcurrentRequests.Release();
             }
-            
+
             return false;
         }
         private async Task CheckSingleFeedAsync(string url, FeedState feedState, ConcurrentBag<Post> newPosts, int trim)
         {
             List<Post?> posts;
-            
+
             try
             {
                 await _instancedConcurrentRequests.WaitAsync();
 
-                posts = feedState.IsYoutube ? 
-                    await FetchYoutubeAsync(url) : 
+                posts = feedState.IsYoutube ?
+                    await FetchYoutubeAsync(url) :
                     await FetchRssAsync(url, trim);
             }
             catch (Exception ex)
@@ -206,7 +206,7 @@ namespace FeedCord.Services
             {
                 _instancedConcurrentRequests.Release();
             }
-            
+
             var freshlyFetched = posts.Where(p => p?.PublishDate > feedState.LastPublishDate).ToList();
 
             if (freshlyFetched.Any())
@@ -221,12 +221,12 @@ namespace FeedCord.Services
                         _logger.LogWarning("Failed to parse a post from {Url}", url);
                         continue;
                     }
-                    
+
                     //TODO --> Implement Filter checking in to a helper/service & remove from FeedManager
-                    if (_hasFilterEnabled)
+                    if (_hasFilterEnabled && _config.PostFilters != null)
                     {
-                        
-                        if (_config.PostFilters.FirstOrDefault(wf => wf.Url == url) is { } filter)
+                        var filter = _config.PostFilters.FirstOrDefault(wf => wf.Url == url);
+                        if (filter != null)
                         {
                             var filterFound = FilterConfigs.GetFilterSuccess(post, filter.Filters.ToArray());
 
@@ -242,7 +242,8 @@ namespace FeedCord.Services
                         }
                         else if (_hasAllFilter)
                         {
-                            if (_config.PostFilters.FirstOrDefault(wf => wf.Url == "all") is { } allFilter)
+                            var allFilter = _config.PostFilters.FirstOrDefault(wf => wf.Url == "all");
+                            if (allFilter != null)
                             {
                                 var filterFound = FilterConfigs.GetFilterSuccess(post, allFilter.Filters.ToArray());
 
@@ -268,7 +269,7 @@ namespace FeedCord.Services
             {
                 _logAggregator.AddLatestUrlPost(url, posts.OrderByDescending(p => p?.PublishDate).FirstOrDefault());
             }
-            
+
         }
         private async Task<List<Post?>> FetchYoutubeAsync(string url)
         {
@@ -313,7 +314,7 @@ namespace FeedCord.Services
                     "An unexpected error occurred while checking the RSS feed from {Url} - Exception Message: {Ex}",
                     url, ex);
             }
-            
+
             return new List<Post?>();
         }
 
@@ -369,11 +370,11 @@ namespace FeedCord.Services
 
         private void HandleFeedError(string url, FeedState feedState, Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to fetch or parse feed {Url}", url);
             feedState.ErrorCount++;
+            _logger.LogError(ex, "Failed to fetch feed from {Url}. Error count: {ErrorCount}", url, feedState.ErrorCount);
 
             if (feedState.ErrorCount < 3 || !_config.EnableAutoRemove) return;
-            
+
             _logger.LogWarning("Removing Url: {Url} after too many errors", url);
             var successRemove = _feedStates.TryRemove(url, out _);
 

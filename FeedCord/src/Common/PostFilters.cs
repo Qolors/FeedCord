@@ -2,6 +2,6 @@ namespace FeedCord.Common;
 
 public class PostFilters
 {
-    public string Url { get; set; }
-    public List<string> Filters { get; set; }
+    public required string Url { get; set; }
+    public required string[] Filters { get; set; }
 }
