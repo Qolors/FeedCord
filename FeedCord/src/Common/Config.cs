@@ -5,16 +5,16 @@ namespace FeedCord.Common
     public class Config
     {
         [Required(ErrorMessage = "The 'Id' Property is required. \"Id\": \"MyFeedName\"")]
-        public string Id { get; set; }
+        public required string Id { get; set; }
 
         [Required(ErrorMessage = "RssUrls Property is required (use an empty array if none) - \"RssUrls\": [\"\"]")]
-        public string[] RssUrls { get; set; }
+        public required string[] RssUrls { get; set; }
 
         [Required(ErrorMessage = "YoutubeUrls Property is required (use an empty array if none) - \"YoutubeUrls\": [\"\"]")]
-        public string[] YoutubeUrls { get; set; }
+        public required string[] YoutubeUrls { get; set; }
 
         [Required(ErrorMessage = "DiscordWebhookUrl Property is required.")]
-        public string DiscordWebhookUrl { get; set; }
+        public required string DiscordWebhookUrl { get; set; }
 
         [Required(ErrorMessage = "RssCheckIntervalMinutes Property is required.")]
         public int RssCheckIntervalMinutes { get; set; }
