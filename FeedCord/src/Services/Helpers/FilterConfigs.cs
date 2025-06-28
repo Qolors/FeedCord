@@ -4,12 +4,27 @@ namespace FeedCord.Services.Helpers;
 
 public static class FilterConfigs
 {
-    public static bool GetFilterSuccess(Post post, string[] filterWords)
+    public static bool GetFilterSuccess(Post post, params string[] filters)
     {
-        var titleLower = post.Title.ToLower();
-        var descLower = post.Description.ToLower();
+        if (filters == null || filters.Length == 0)
+            return true;
 
-        return filterWords.Any(word => post.Title.Contains(word, StringComparison.OrdinalIgnoreCase))
-               || filterWords.Any(word => post.Description.Contains(word, StringComparison.OrdinalIgnoreCase));
+        foreach (var filter in filters)
+        {
+            // filter for label by looking for the prefix "label:" in filter settings
+            if (filter.StartsWith("label:", StringComparison.OrdinalIgnoreCase))
+            {
+                var labelToFind = filter.Substring("label:".Length);
+                if (post.Labels != null && post.Labels.Any(l => l.Equals(labelToFind, StringComparison.OrdinalIgnoreCase)))
+                    return true;
+            }
+            else
+            {
+                if ((post.Title != null && post.Title.Contains(filter, StringComparison.OrdinalIgnoreCase)) ||
+                    (post.Description != null && post.Description.Contains(filter, StringComparison.OrdinalIgnoreCase)))
+                    return true;
+            }
+        }
+        return false;
     }
 }

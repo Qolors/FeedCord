@@ -72,7 +72,11 @@ namespace FeedCord.Services.Helpers
             {
                 return TryBuildRedditPost(post, feed, trim, imageUrl);
             }
-
+            else if (post.Id.Contains("gitlab.com"))
+            {
+                return TryBuildGitlabPost(post, feed, trim, imageUrl);
+            }
+            
             string title;
             string imageLink;
             string description;
@@ -80,12 +84,16 @@ namespace FeedCord.Services.Helpers
             string subtitle;
             DateTime pubDate;
 
+            // log 
+
             if (post.SpecificItem is AtomFeedItem atomItem)
             {
                 title = atomItem.Title;
                 imageLink = imageUrl;
                 description = DecodeContent(atomItem.Content);
+
                 link = atomItem.Links.FirstOrDefault()?.Href ?? string.Empty;
+
                 subtitle = feed.Title;
                 pubDate = DateTime.TryParse(atomItem.PublishedDate?.ToString(), out var tempDate) 
                     ? tempDate 
@@ -110,7 +118,7 @@ namespace FeedCord.Services.Helpers
             var decAuthor = DecodeContent(author);
 
             if (trim == 0) 
-                return new Post(title, imageLink, description, link, subtitle, pubDate, author);
+                return new Post(title, imageLink, description, link, subtitle, pubDate, author, Array.Empty<string>());
             
             if (description.Length > trim)
             {
@@ -124,7 +132,64 @@ namespace FeedCord.Services.Helpers
                 link, 
                 decSubtitle, 
                 pubDate, 
-                decAuthor);
+                decAuthor,
+                Array.Empty<string>());
+        }
+
+        private static Post TryBuildGitlabPost(
+            FeedItem post,
+            Feed feed,
+            int trim,
+            string imageUrl)
+        {
+            var title = post.Title ?? string.Empty;
+            var link = post.Link ?? string.Empty;
+            var description = DecodeContent(post.Description ?? string.Empty);
+            var subtitle = feed.Title;
+            var author = string.Empty;
+            var pubDate = DateTime.TryParse(post.PublishingDate.ToString(), out var fallbackDate) ? fallbackDate : default;
+            var labels = Array.Empty<string>();
+
+            // Simple approach: Parse labels directly from raw XML
+            if (post.SpecificItem is AtomFeedItem atomItem && atomItem.Element != null)
+            {
+                // Extract labels using simple LINQ to XML
+                var labelsElement = atomItem.Element.Descendants().FirstOrDefault(e => e.Name.LocalName == "labels");
+                if (labelsElement != null)
+                {
+                    labels = labelsElement.Descendants()
+                        .Where(e => e.Name.LocalName == "label")
+                        .Select(e => e.Value.Trim())
+                        .Where(label => !string.IsNullOrWhiteSpace(label))
+                        .ToArray();
+                }
+
+                // Extract other fields from atom item if available
+                title = atomItem.Title ?? title;
+                author = TryGetAuthor(post);
+                pubDate = DateTime.TryParse(atomItem.PublishedDate?.ToString(), out var tempDate) 
+                    ? tempDate 
+                    : DateTime.TryParse(atomItem.UpdatedDate?.ToString(), out tempDate) 
+                        ? tempDate 
+                        : pubDate;
+            }
+
+            // trim description
+            if (trim > 0 && description.Length > trim)
+            {
+                description = description[..trim] + "...";
+            }
+
+            return new Post(
+                Title: title,
+                ImageUrl: "",
+                Description: description,
+                Link: link,
+                Tag: subtitle,
+                PublishDate: pubDate,
+                Author: author,
+                Labels: labels
+            );
         }
 
         private static Post TryBuildRedditPost(
@@ -207,7 +272,8 @@ namespace FeedCord.Services.Helpers
                 Link: link,
                 Tag: subtitle,
                 PublishDate: pubDate,
-                Author: author
+                Author: author,
+                Labels: Array.Empty<string>()
             );
         }
 
