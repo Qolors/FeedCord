@@ -147,7 +147,7 @@ namespace FeedCord.Services.Helpers
             var description = DecodeContent(post.Description ?? string.Empty);
             var subtitle = feed.Title;
             var author = string.Empty;
-            var pubDate = DateTime.TryParse(post.PublishingDate.ToString(), out var fallbackDate) ? fallbackDate : DateTime.Now;
+            var pubDate = DateTime.TryParse(post.PublishingDate.ToString(), out var fallbackDate) ? fallbackDate : default;
             var labels = Array.Empty<string>();
 
             // Simple approach: Parse labels directly from raw XML
